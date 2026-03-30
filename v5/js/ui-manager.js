@@ -62,18 +62,18 @@ const RECENT_FAMILY_WINDOW = 4;
 const RECENT_SIGNATURE_WINDOW = 6;
 
 const RHYTHM_GROUPS = {
-  sparse: [0, 1, 2, 3],
-  steady: [2, 3, 5, 6],
-  push: [4, 5, 6, 7, 8],
-  busy: [4, 6, 7, 8]
+  sparse: [0, 2],
+  steady: [2, 4],
+  push: [4, 5],
+  busy: [4, 5, 6]
 };
 
 const BASS_PROFILE_GROUPS = {
-  pedal: [0, 1, 7],
-  step: [1, 2, 5],
-  walk: [3, 6],
-  ostinato: [2, 4],
-  sync: [5, 7]
+  pedal: [0, 1],
+  step: [1, 2],
+  walk: [2, 3],
+  ostinato: [1, 2],
+  sync: [2, 3]
 };
 
 const FORM_VARIANTS = {
@@ -94,7 +94,7 @@ const ARRANGEMENT_TEMPLATES = [
     barPlans: [
       { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
       { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   },
@@ -106,9 +106,9 @@ const ARRANGEMENT_TEMPLATES = [
     tensionLift: 1.12,
     barPlans: [
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
-      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 2 }, { chordIndex: 0, offset: 2, span: 2, tag: 'turn' }] }
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   },
   {
@@ -119,8 +119,8 @@ const ARRANGEMENT_TEMPLATES = [
     tensionLift: 1.16,
     barPlans: [
       { rhythm: 'steady', bass: 'walk', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'push', bass: 'walk', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
-      { rhythm: 'busy', bass: 'walk', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] },
+      { rhythm: 'push', bass: 'walk', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
+      { rhythm: 'busy', bass: 'walk', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
       { rhythm: 'push', bass: 'walk', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   },
@@ -132,7 +132,7 @@ const ARRANGEMENT_TEMPLATES = [
     tensionLift: 1.06,
     barPlans: [
       { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'steady', bass: 'ostinato', events: [{ chordIndex: 0, offset: 0, span: 2 }, { chordIndex: 1, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'ostinato', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'ostinato', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
       { rhythm: 'push', bass: 'step', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
@@ -144,9 +144,9 @@ const ARRANGEMENT_TEMPLATES = [
     bassProfile: 'sync',
     tensionLift: 1.2,
     barPlans: [
-      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 0, offset: 0, span: 2 }, { chordIndex: 1, offset: 2, span: 2 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
-      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
       { rhythm: 'busy', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   },
@@ -160,7 +160,7 @@ const ARRANGEMENT_TEMPLATES = [
       { rhythm: 'sparse', bass: 'step', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
-      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] }
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   }
 ];

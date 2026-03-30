@@ -175,6 +175,8 @@ function scalePattern(pattern, spanBeats) {
   if (!pattern?.length) return [0];
   const scaled = [...new Set(pattern
     .map((offset) => Number(((offset / 4) * spanBeats).toFixed(2)))
+    .map((offset) => Math.max(0, Math.min(spanBeats - 1, Math.round(offset))))
+    .filter((offset, index, arr) => arr.indexOf(offset) === index)
     .filter((offset) => offset >= 0 && offset < spanBeats))];
   return scaled.length ? scaled : [0];
 }
@@ -262,7 +264,7 @@ function perc(beat, t, type) {
 function playBass(rootMidi, t0, spb, patternIdx, spanBeats = 4, volScale = 1.0) {
   const pattern = BASS_PATTERNS[patternIdx % BASS_PATTERNS.length];
   const scaledPattern = pattern
-    .map(([offset, semitones]) => [Number(((offset / 4) * spanBeats).toFixed(2)), semitones])
+    .map(([offset, semitones]) => [Math.max(0, Math.min(spanBeats - 1, Math.round((offset / 4) * spanBeats))), semitones])
     .filter(([offset]) => offset >= 0 && offset < spanBeats);
   const hits = scaledPattern.length ? scaledPattern : [[0, -12]];
 
