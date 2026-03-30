@@ -11,8 +11,10 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Caratteristiche
 
 - **Motore Audio mobile-first**: Web Audio API con sample pack locali leggeri, caricamento rapido e consumo dati ridotto su smartphone.
-- **Progressioni Armoniche**: Preset che spaziano tra pop, teatro musicale, jazz leggero, blues, modale e stili latini.
+- **Progressioni Armoniche**: Preset riallineati a grammatiche piu' coerenti con lo stile ritmico associato.
 - **Batterie per stile**: Ogni stile ritmico pesca tra 6 variazioni complete dedicate, sempre in 4/4.
+- **Colore armonico**: L'interfaccia mostra etichette piu' solide (`diatonico`, `cadenziale jazz`, `prestito modale`, `cromatico`, ecc.) al posto di mood descrittivi.
+- **Distribuzione piu' omogenea**: L'avvio e la randomizzazione usano una coda bilanciata tra stili con memoria recente per ridurre le ripetizioni ravvicinate.
 - **Cambio strumenti ciclico**: Lo strumento principale e il basso non cambiano in modo randomico, ma scorrono ciclicamente tra le opzioni disponibili.
 - **4 bassi distinti**: `Electric`, `Acoustic`, `Fretless` e `Synth`.
 - **Gestione Struttura**: Monitoraggio automatico di Intro, Strofa e Ritornello con indicatori di progresso.
@@ -29,7 +31,7 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Struttura Versioni
 
 - `index.html`: entrypoint principale, oggi allineato alla `v5`.
-- `v5/`: versione principale completa con UI split strumenti/basso, info stile/mood e variazioni ritmiche per stile.
+- `v5/`: versione principale completa con UI split strumenti/basso, info stile/colore armonico e variazioni ritmiche per stile.
 - `failsafe/`: copia autonoma della `v0.4` da usare come fallback o vecchia versione.
 
 ## Come si usa
@@ -44,6 +46,7 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Note Operative
 
 - La `v5` e' ottimizzata per uso prevalente su smartphone.
+- La selezione iniziale e il tasto random non pescano piu' in modo uniforme puro: usano una rotazione bilanciata tra stili e tengono fuori i temi usati di recente.
 - Il failsafe `v0.4` resta disponibile se serve una versione piu' conservativa o la vecchia esperienza.
 
 ## Licenza

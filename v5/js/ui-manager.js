@@ -38,15 +38,20 @@ const STYLE_LABELS = {
   tango: 'Tango'
 };
 
-const MOOD_LABELS = {
-  teatro: 'Teatrale',
-  magico: 'Magico',
-  sacro: 'Sacrale',
-  locale: 'Notturno',
-  storico: 'Epico',
-  esotico: 'Esotico',
-  fantascientifico: 'Sci-fi'
+const COLOR_LABELS = {
+  diatonico: 'Diatonico',
+  tonale_esteso: 'Tonale esteso',
+  minore_tonale: 'Minore tonale',
+  modale_minore: 'Modale minore',
+  prestito_modale: 'Prestito modale',
+  cadenziale_jazz: 'Cadenziale jazz',
+  blues: 'Blues',
+  cromatico: 'Cromatico'
 };
+
+const THEME_QUEUE_KEY = 'themeQueue_v05g';
+const THEME_RECENT_KEY = 'themeRecent_v05g';
+const RECENT_THEME_WINDOW = 12;
 
 // Lista bassi mobile-first disponibili
 const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
@@ -89,6 +94,142 @@ function refreshBassDisplay() {
   if (el) el.innerHTML = BASS_DISPLAY_NAMES[window.currentBassSound] || window.currentBassSound;
 }
 
+function originalPerc(theme) {
+  if (!theme._sourcePerc) theme._sourcePerc = theme.perc;
+  return theme._sourcePerc;
+}
+
+function shuffleList(list) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function themeHasFn(theme, token) {
+  return theme.fn.some((fn) => fn.includes(token));
+}
+
+function countChordType(theme, type) {
+  return theme.ch.filter((ch) => ch.t === type).length;
+}
+
+function isLowercaseMinorStart(theme) {
+  return /^i/.test(theme.fn[0] || '');
+}
+
+function resolveThemeProfile(theme) {
+  if (theme._profile) return theme._profile;
+
+  const lowerName = theme.name.toLowerCase();
+  const sourcePerc = originalPerc(theme);
+  const hasMaj7 = countChordType(theme, 'maj7') > 0;
+  const hasMin7 = countChordType(theme, 'min7') > 0;
+  const hasMin6 = countChordType(theme, 'min6') > 0;
+  const hasDim = countChordType(theme, 'dim7') > 0;
+  const hasAug = countChordType(theme, 'aug') > 0;
+  const hasSus = countChordType(theme, 'sus2') > 0 || countChordType(theme, 'sus4') > 0;
+  const domCount = countChordType(theme, 'dom7');
+  const hasBorrowed = ['bII', 'bIII', 'bVI', 'bVII'].some((token) => themeHasFn(theme, token));
+  const hasCircle = themeHasFn(theme, 'ii7') || themeHasFn(theme, 'V7') || themeHasFn(theme, 'III7') || themeHasFn(theme, 'VI7');
+  const hasBluesCadence = themeHasFn(theme, 'I7') || themeHasFn(theme, 'IV7') || themeHasFn(theme, 'bVII7');
+  const startsMinor = ['min', 'min7', 'min6'].includes(theme.ch[0].t) || isLowercaseMinorStart(theme);
+  const simpleDiatonic = theme.fn.every((fn) => ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'V7', 'ii7', 'iii7', 'vi7', 'Imaj7'].includes(fn));
+
+  let style;
+  if (/(bossa|samba)/.test(lowerName) || sourcePerc === 'bossa') style = 'bossa';
+  else if (/(rumba|cumbia|tarantella)/.test(lowerName) || sourcePerc === 'latin') style = 'latin';
+  else if (/(tango|gypsy|frigio|flamenco)/.test(lowerName) || (startsMinor && hasBorrowed && !hasCircle)) style = 'tango';
+  else if (/(gospel)/.test(lowerName) || sourcePerc === 'gospel') style = 'gospel';
+  else if (/(motown|soul|funk|anthem)/.test(lowerName) || (sourcePerc === 'funk' && (hasBluesCadence || hasMin7))) style = 'funk';
+  else if (/(circo|polka|valzer|barocco)/.test(lowerName) || sourcePerc === 'march' || hasDim || hasAug) style = 'march';
+  else if (hasCircle || hasMaj7 || hasMin7) style = 'swing';
+  else if (/(rock)/.test(lowerName) || sourcePerc === 'rock') style = 'rock';
+  else style = 'rock';
+
+  let color;
+  if (hasBluesCadence && domCount >= 2) color = 'blues';
+  else if (hasDim || hasAug) color = 'cromatico';
+  else if (hasCircle && (hasMaj7 || hasMin7 || domCount > 0)) color = 'cadenziale_jazz';
+  else if (startsMinor && hasBorrowed) color = 'modale_minore';
+  else if (hasBorrowed) color = 'prestito_modale';
+  else if (startsMinor || hasMin6) color = 'minore_tonale';
+  else if (simpleDiatonic || hasSus) color = 'diatonico';
+  else color = 'tonale_esteso';
+
+  theme._profile = { style, color };
+  return theme._profile;
+}
+
+function applyThemeProfile(theme) {
+  const profile = resolveThemeProfile(theme);
+  theme.perc = profile.style;
+  theme.lg = profile.color;
+  return profile;
+}
+
+function buildThemeQueue() {
+  const buckets = {};
+  THEMES.forEach((theme, index) => {
+    const { style } = resolveThemeProfile(theme);
+    if (!buckets[style]) buckets[style] = [];
+    buckets[style].push(index);
+  });
+
+  const styles = shuffleList(Object.keys(buckets));
+  styles.forEach((style) => {
+    buckets[style] = shuffleList(buckets[style]);
+  });
+
+  const queue = [];
+  let remaining = true;
+  while (remaining) {
+    remaining = false;
+    for (const style of styles) {
+      if (buckets[style].length) {
+        queue.push(buckets[style].shift());
+        remaining = true;
+      }
+    }
+  }
+  return queue;
+}
+
+function readStoredList(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredList(key, list) {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch {}
+}
+
+function pickNextThemeIndex() {
+  let queue = readStoredList(THEME_QUEUE_KEY).filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < THEMES.length);
+  const recent = readStoredList(THEME_RECENT_KEY).filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < THEMES.length);
+
+  if (!queue.length) queue = buildThemeQueue();
+
+  let pickAt = queue.findIndex((idx) => !recent.includes(idx));
+  if (pickAt === -1) pickAt = 0;
+
+  const [nextIdx] = queue.splice(pickAt, 1);
+  const nextRecent = [nextIdx, ...recent.filter((idx) => idx !== nextIdx)].slice(0, RECENT_THEME_WINDOW);
+
+  writeStoredList(THEME_QUEUE_KEY, queue);
+  writeStoredList(THEME_RECENT_KEY, nextRecent);
+  return nextIdx;
+}
+
 function getThemeSound(theme = THEMES[themeIdx]) {
   return normalizeMainSound(theme?.sound || 'grandpiano');
 }
@@ -98,7 +239,7 @@ function refreshThemeMeta() {
   const styleEl = document.getElementById('styleText');
   const moodEl = document.getElementById('moodText');
   if (styleEl) styleEl.textContent = STYLE_LABELS[theme.perc] || 'Libero';
-  if (moodEl) moodEl.textContent = MOOD_LABELS[theme.lg] || theme.lg || 'Aperto';
+  if (moodEl) moodEl.textContent = COLOR_LABELS[theme.lg] || theme.lg || 'Aperto';
 }
 
 // COUNT-IN
@@ -167,6 +308,7 @@ window.onInstrumentLoaded = function(name) {
 
 function selectTheme(i, keepLoc = false) {
   themeIdx = i;
+  applyThemeProfile(THEMES[i]);
   THEMES[i].sound = getThemeSound(THEMES[i]);
   window.currentBassSound = normalizeBassSound(window.currentBassSound);
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
@@ -203,7 +345,7 @@ function doFullRandom() {
   const btn = document.getElementById('btnRandom');
   btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
   if (isPlaying || isCountingIn) stopAll(true);
-  const i = Math.floor(Math.random() * THEMES.length);
+  const i = pickNextThemeIndex();
   THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
   window.currentBassSound = randomFromList(BASS_LIST);
   selectTheme(i, false);
@@ -394,8 +536,9 @@ function armEnding() { if (!isPlaying || endingDone) return; endingArmed = true;
 
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => { document.getElementById('curtL').classList.add('open'); document.getElementById('curtR').classList.add('open'); }, 150);
-  const i = Math.floor(Math.random() * THEMES.length);
+  const i = pickNextThemeIndex();
   themeIdx = i;
+  applyThemeProfile(THEMES[i]);
   THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
   window.currentBassSound = randomFromList(BASS_LIST);
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
