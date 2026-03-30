@@ -93,8 +93,8 @@ const ARRANGEMENT_TEMPLATES = [
     tensionLift: 1.08,
     barPlans: [
       { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
-      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
+      { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
       { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
     ]
   },

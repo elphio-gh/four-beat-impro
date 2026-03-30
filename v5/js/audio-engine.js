@@ -299,20 +299,37 @@ function scheduleBeat(beat, t) {
   const theme = THEMES[themeIdx], spb = 60 / bpm, bpc = 4;
   const cIdx = Math.floor(beat / bpc) % 4, bInC = beat % bpc;
   const sectionEnergy = currentSectionEnergy();
+  
+  // Percussioni e metronomo sempre ad ogni beat
   perc(bInC, t, theme.perc);
   if (metronomeOn) metroClick(t, bInC === 0);
-  const barPlan = getBarPlan(theme, cIdx);
-  const primaryEvent = barPlan.events[0];
-  const primaryChord = theme.ch[primaryEvent.chordIndex];
+
+  // Scheduling degli eventi armonici: solo al primo beat della misura (bInC === 0)
   if (bInC === 0 && !endingDone) {
-    playBass(primaryChord.r + 12, t, spb, bassPatterns[cIdx], 4, sectionEnergy);
-    schedUI(() => highlightChord(primaryEvent.chordIndex), t);
+    const barPlan = getBarPlan(theme, cIdx);
+    
+    // 1. Basso (pianifica l'intera misura)
+    playBass(theme.ch[barPlan.events[0].chordIndex].r + 12, t, spb, bassPatterns[cIdx], 4, sectionEnergy);
+    
+    // 2. Accordi (pianifica i colpi ritmici dell'intera misura per ogni evento del barPlan)
+    barPlan.events.forEach(event => {
+      const chord = theme.ch[event.chordIndex];
+      const notes = bNotes(chord.r + 12, chord.t);
+      const rhythmIdx = chordRhythms[cIdx];
+      
+      // Pianifica il segmento di accordo con il pattern ritmico assegnato
+      playChordSegment(notes, t + event.offset * spb, spb, event.span, theme.sound, rhythmIdx, sectionEnergy);
+      
+      // Aggiornamento UI: evidenzia l'accordo corrente (solo per l'evento principale all'inizio)
+      if (event.offset === 0) {
+        schedUI(() => highlightChord(event.chordIndex), t);
+      }
+    });
   }
-  if (!endingDone) {
-    const notes = bNotes(primaryChord.r + 12, primaryChord.t);
-    playChordAt(notes, t, spb * 0.86, theme.sound, sectionEnergy * (bInC === 0 ? 1.0 : 0.9), false);
-  }
+
+  // Evidenzia il beat corrente nella UI
   schedUI(() => highlightBeat(bInC), t);
+  
   if (beat === 0) schedUI(() => { introGiro = 1; setStruttura('intro'); }, t);
   if (beat === 16) schedUI(() => { introGiro = 2; updateProgressDisplay(); setStatus('🎵 Intro — giro 2 di 2', 'sec-intro'); }, t);
   if (beat === 32) schedUI(() => { sezCounter.strofa = 1; setStruttura('strofa'); }, t);
