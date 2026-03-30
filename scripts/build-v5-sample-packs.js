@@ -27,6 +27,26 @@ const PACKS = {
     source: 'vibraphone',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  brass: {
+    source: 'brass_section',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  strings: {
+    source: 'string_ensemble_1',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  honkytonk: {
+    source: 'honkytonk_piano',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  marimba: {
+    source: 'marimba',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  nylonguitar: {
+    source: 'acoustic_guitar_nylon',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   bass_electric: {
     source: 'electric_bass_finger',
     notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']

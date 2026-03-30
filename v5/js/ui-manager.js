@@ -11,22 +11,23 @@ let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
 
-const MAIN_INSTRUMENT_LIST = ['grandpiano', 'elecpiano', 'organ', 'accordion', 'vibraphone'];
-const BRIGHT_MAIN_SOUNDS = ['grandpiano', 'elecpiano', 'vibraphone'];
-const WARM_MAIN_SOUNDS = ['grandpiano', 'elecpiano', 'accordion'];
-const DRAMATIC_MAIN_SOUNDS = ['grandpiano', 'organ', 'accordion'];
+const MAIN_INSTRUMENT_LIST = ['grandpiano', 'elecpiano', 'brass', 'strings', 'honkytonk', 'marimba', 'nylonguitar', 'organ', 'accordion', 'vibraphone'];
+const BRIGHT_MAIN_SOUNDS = ['grandpiano', 'elecpiano', 'brass', 'honkytonk', 'marimba'];
+const WARM_MAIN_SOUNDS = ['grandpiano', 'elecpiano', 'nylonguitar', 'strings'];
+const DRAMATIC_MAIN_SOUNDS = ['grandpiano', 'strings', 'organ', 'accordion', 'vibraphone'];
 const MAIN_SOUND_ALIASES = {
   jazzpiano: 'vibraphone',
   pipeorgan: 'organ',
   strings: 'organ',
-  brass: 'organ',
   synthpad: 'organ',
-  nylonguitar: 'accordion',
+  brass: 'brass',
+  strings: 'strings',
+  nylonguitar: 'nylonguitar',
   distguitar: 'elecpiano',
   steelguitar: 'elecpiano',
   vibraphone: 'vibraphone',
-  marimba: 'elecpiano',
-  honkytonk: 'grandpiano',
+  marimba: 'marimba',
+  honkytonk: 'honkytonk',
   harpsichord: 'grandpiano'
 };
 
@@ -575,7 +576,7 @@ function refreshChordDisplay() {
     document.getElementById('cnum' + i).textContent = t.fn[i] || ('Acc ' + (i + 1));
     document.getElementById('cname' + i).textContent = cLabel(cd.r, cd.t);
   }
-  const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎸', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
+  const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎹', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
   document.getElementById('instrIcon').textContent = icons[sound] || '🎹';
   document.getElementById('instrName').innerHTML = (SOUND_NAMES[sound] || sound);
   refreshThemeMeta();

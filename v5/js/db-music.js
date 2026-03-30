@@ -26,16 +26,16 @@ const SOUND_NAMES = {
   organ: 'Hammond Organ',
   pipeorgan: 'Pipe Organ',
   accordion: 'Fisarmonica',
-  strings: 'Archi',
-  brass: 'Ottoni',
+  strings: 'String Ensemble',
+  brass: 'Brass Section',
   nylonguitar: 'Chitarra Classica',
   distguitar: 'Chitarra Elettrica',
   steelguitar: 'Steel Guitar',
   honkytonk: 'Honky-Tonk Piano',
   synthpad: 'Synth Pad',
   vibraphone: 'Vibrafono',
-  harpsichord: 'Clavicembalo',
-  marimba: 'Marimba'
+  marimba: 'Marimba',
+  harpsichord: 'Clavicembalo'
 };
 
 const THEMES = [

@@ -35,6 +35,36 @@ const SAMPLE_PACKS = {
     release: 0.5,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  brass: {
+    kind: 'pitched',
+    gain: 1.35,
+    release: 0.22,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  strings: {
+    kind: 'pitched',
+    gain: 1.3,
+    release: 0.32,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  honkytonk: {
+    kind: 'pitched',
+    gain: 1.7,
+    release: 0.26,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  marimba: {
+    kind: 'pitched',
+    gain: 1.55,
+    release: 0.24,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  nylonguitar: {
+    kind: 'pitched',
+    gain: 1.45,
+    release: 0.24,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   bass_electric: {
     kind: 'pitched',
     gain: 1.2,
@@ -84,16 +114,13 @@ const SAMPLE_PACKS = {
 const SAMPLE_ALIASES = {
   jazzpiano: 'vibraphone',
   pipeorgan: 'organ',
-  strings: 'organ',
-  brass: 'organ',
   synthpad: 'organ',
-  nylonguitar: 'accordion',
-  honkytonk: 'grandpiano',
+  honkytonk: 'honkytonk',
   harpsichord: 'grandpiano',
   distguitar: 'elecpiano',
   steelguitar: 'elecpiano',
   vibraphone: 'vibraphone',
-  marimba: 'elecpiano'
+  marimba: 'marimba'
 };
 
 const Sampler = {
