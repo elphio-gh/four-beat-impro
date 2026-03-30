@@ -8,7 +8,7 @@
 
 const Sampler = {
   instruments: {}, // { nomeStrumento: { nomeNota: AudioBuffer } }
-  loading: {},     // { nomeStrumento: true } durante il caricamento
+  loading: {},     // { nomeStrumento: Promise } durante il caricamento
   baseUrl: window.location.protocol === 'file:'
     ? 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/'
     : 'soundfonts/',
@@ -31,11 +31,14 @@ const Sampler = {
     'vibraphone': 'vibraphone',
     'harpsichord': 'harpsichord',
     'marimba': 'marimba',
-    'bass': 'electric_bass_finger',
-    'kick': 'taiko_drum',
-    'snare': 'synth_drum',
-    'hihat': 'agogo',
-    'rim': 'woodblock'
+    'bass_electric': 'electric_bass_finger',
+    'bass_acoustic': 'acoustic_bass',
+    'bass_fretless': 'fretless_bass',
+    'bass_synth': 'synth_bass_1',
+    'kick': 'acoustic_kick',
+    'snare': 'acoustic_snare',
+    'hihat': 'acoustic_hihat',
+    'rim': 'acoustic_rim'
   },
 
   /**
@@ -46,80 +49,85 @@ const Sampler = {
   async loadInstrument(name) {
     const internalName = this.map[name] || name;
 
-    // Evita caricamenti duplicati
-    if (this.instruments[name] || this.loading[name]) return;
+    // Evita caricamenti duplicati: se caricato, torna subito; se in caricamento, torna la Promise
+    if (this.instruments[name]) return Promise.resolve();
+    if (this.loading[name]) return this.loading[name];
 
     // L'AudioContext deve esistere per la decodifica dei campioni
     if (!ctx) {
       console.warn(`[Sampler] AudioContext non inizializzato. Caricamento di "${name}" rimandato.`);
-      return;
+      return Promise.resolve();
     }
 
     console.log(`[Sampler] Avvio caricamento HD: ${name} (CDN: ${internalName})...`);
-    this.loading[name] = true;
 
-    try {
-      // STEP 1: Scarica il file .js dal CDN (contiene i campioni come data URIs base64)
-      const response = await fetch(`${this.baseUrl}${internalName}-ogg.js`);
-      if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
-      const scriptText = await response.text();
+    const loadPromise = (async () => {
+      try {
+        // STEP 1: Scarica il file .js dal CDN (contiene i campioni come data URIs base64)
+        const response = await fetch(`${this.baseUrl}${internalName}-ogg.js`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
+        const scriptText = await response.text();
 
-      // STEP 2: Esegue lo script nel contesto globale per popolare window.MIDI.Soundfont
-      // I file CDN dichiarano "var MIDI = ..." che con new Function resterebbe locale
-      // e non popolerebbe mai l'oggetto globale. Serve eval nel contesto globale.
-      window.eval(scriptText);
+        // STEP 2: Esegue lo script nel contesto globale per popolare window.MIDI.Soundfont
+        // I file CDN dichiarano "var MIDI = ..." che con new Function resterebbe locale
+        // e non popolerebbe mai l'oggetto globale. Serve eval nel contesto globale.
+        window.eval(scriptText);
 
-      // STEP 3: Estrae i dati audio dall'oggetto globale
-      const soundData = window.MIDI.Soundfont[internalName];
-      if (!soundData) throw new Error(`Dati non trovati per "${internalName}" dopo eval`);
+        // STEP 3: Estrae i dati audio dall'oggetto globale
+        const soundData = window.MIDI.Soundfont[internalName];
+        if (!soundData) throw new Error(`Dati non trovati per "${internalName}" dopo eval`);
 
-      const noteKeys = Object.keys(soundData);
-      console.log(`[Sampler] ${name}: trovate ${noteKeys.length} note, avvio decodifica...`);
+        const noteKeys = Object.keys(soundData);
+        console.log(`[Sampler] ${name}: trovate ${noteKeys.length} note, avvio decodifica...`);
 
-      // STEP 4: Decodifica ogni campione base64 in AudioBuffer
-      const buffers = {};
-      let decoded = 0, failed = 0;
+        // STEP 4: Decodifica ogni campione base64 in AudioBuffer
+        const buffers = {};
+        let decoded = 0, failed = 0;
 
-      const promises = noteKeys.map(async (note) => {
-        try {
-          const base64Data = soundData[note].split(',')[1];
-          if (!base64Data) { failed++; return; }
+        const promises = noteKeys.map(async (note) => {
+          try {
+            const base64Data = soundData[note].split(',')[1];
+            if (!base64Data) { failed++; return; }
 
-          // Converte base64 in ArrayBuffer binario
-          const raw = atob(base64Data);
-          const arr = new Uint8Array(raw.length);
-          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            // Converte base64 in ArrayBuffer binario
+            const raw = atob(base64Data);
+            const arr = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
 
-          // .slice(0) crea una copia pulita del buffer, necessaria perche'
-          // decodeAudioData "detaches" (trasferisce) il buffer originale
-          const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
-          buffers[note] = audioBuffer;
-          decoded++;
-        } catch (e) {
-          failed++;
+            // .slice(0) crea una copia pulita del buffer, necessaria perche'
+            // decodeAudioData "detaches" (trasferisce) il buffer originale
+            const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
+            buffers[note] = audioBuffer;
+            decoded++;
+          } catch (e) {
+            failed++;
+          }
+        });
+
+        await Promise.all(promises);
+
+        if (decoded === 0) {
+          throw new Error(`Nessun campione decodificato (${failed} falliti) — formato audio non supportato?`);
         }
-      });
 
-      await Promise.all(promises);
+        this.instruments[name] = buffers;
+        console.log(`[Sampler] HD Caricato: ${name} — ${decoded} note OK, ${failed} fallite`);
 
-      if (decoded === 0) {
-        throw new Error(`Nessun campione decodificato (${failed} falliti) — formato audio non supportato?`);
+        // Pulizia memoria globale: i dati raw non servono piu' (i buffer decodificati sono in this.instruments)
+        delete window.MIDI.Soundfont[internalName];
+
+        // Notifica la UI per aggiornare i badge [HD]
+        if (window.onInstrumentLoaded) window.onInstrumentLoaded(name);
+
+      } catch (err) {
+        console.error(`[Sampler] Errore caricamento "${name}":`, err);
+      } finally {
+        delete this.loading[name];
       }
+    })();
 
-      this.instruments[name] = buffers;
-      this.loading[name] = false;
-      console.log(`[Sampler] HD Caricato: ${name} — ${decoded} note OK, ${failed} fallite`);
-
-      // Pulizia memoria globale: i dati raw non servono piu' (i buffer decodificati sono in this.instruments)
-      delete window.MIDI.Soundfont[internalName];
-
-      // Notifica la UI per aggiornare i badge [HD]
-      if (window.onInstrumentLoaded) window.onInstrumentLoaded(name);
-
-    } catch (err) {
-      console.error(`[Sampler] Errore caricamento "${name}":`, err);
-      this.loading[name] = false;
-    }
+    this.loading[name] = loadPromise;
+    return loadPromise;
   },
 
   /**
@@ -144,7 +152,9 @@ const Sampler = {
     source.buffer = buffer;
 
     const gain = ctx.createGain();
-    const peakVol = volume * 3.5;
+    // I campioni acustici sono gia' normalizzati a 0dB e quindi molto forti.
+    // Un moltiplicatore di 0.25 e' ideale per tenerli come accompagnamento (era 0.55)
+    const peakVol = volume * 0.25;
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
     // Le percussioni reali (SoundFont) decadono naturalmente. Diamo 1 secondo abbondante senza tagli netti.

@@ -11,9 +11,9 @@ const LOOK_AHEAD = 0.14, TICK_MS = 25;
 function initAudio() {
   if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = ctx.createGain(); masterGain.gain.value = 0.8;
-  dryGain = ctx.createGain(); dryGain.gain.value = 0.7;
-  revGain = ctx.createGain(); revGain.gain.value = 0.3;
+  masterGain = ctx.createGain(); masterGain.gain.value = 1.35; // Volume generale aumentato
+  dryGain = ctx.createGain(); dryGain.gain.value = 0.8;
+  revGain = ctx.createGain(); revGain.gain.value = 0.25;
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -14; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.12;
   revNode = buildReverb();
@@ -34,22 +34,21 @@ function playNote(midi, t0, dur, vol, sound) {
 }
 
 function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
-  if (withBass) playNote(notes[0] - 12, t0, dur, 0.46 * volScale, sound);
-  notes.forEach((n, i) => playNote(n, t0, dur, (i === 0 ? 0.24 : 0.19) * volScale, sound));
+  if (withBass) playNote(notes[0] - 12, t0, dur, 0.22 * volScale, sound);
+  notes.forEach((n, i) => playNote(n, t0, dur, (i === 0 ? 0.70 : 0.60) * volScale, sound));
 }
 
 // PERCUSSION
-function kick(t) { Sampler.playDrum('kick', 36, t, 0.4, 0.65 * 1.5); }
-function snare(t, vol = 0.4) { Sampler.playDrum('snare', 48, t, 0.22, vol * 1.5); }
+function kick(t) { Sampler.playDrum('kick', 36, t, 0.4, 0.65 * 0.65); }
+function snare(t, vol = 0.4) { Sampler.playDrum('snare', 48, t, 0.22, vol * 0.7); }
 function hihat(t, vol = 0.12, open = false) { 
   const dur = open ? 0.38 : 0.07;
-  Sampler.playDrum('hihat', 84, t, dur, vol * 2.0); 
+  Sampler.playDrum('hihat', 84, t, dur, vol * 1.2); 
 }
 function rim(t) { Sampler.playDrum('rim', 76, t, 0.05, 0.3); }
 function metroClick(t, isOne) {
   const vol = isOne ? 0.9 : 0.5;
-  const pit = isOne ? 84 : 76;
-  Sampler.playDrum('rim', pit, t, 0.05, vol * 1.5);
+  Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5);
 }
 function clickSound(t, vol = 0.65) { 
   Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5); 
@@ -77,7 +76,7 @@ function playBass(rootMidi, t0, spb, patternIdx) {
     const hitT = t0 + offset * spb;
     const dur = spb * 0.55;
 
-    Sampler.playNote('bass', note, hitT, dur, 0.6);
+    Sampler.playNote(window.currentBassSound || 'bass_electric', note, hitT, dur, 0.15);
   });
 }
 

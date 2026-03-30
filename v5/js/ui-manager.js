@@ -11,6 +11,17 @@ let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
 
+// Lista dei bassi HD SoundFont disponibili
+const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
+const BASS_DISPLAY_NAMES = {
+  'bass_electric': 'Electric Bass',
+  'bass_acoustic': 'Acoustic Bass',
+  'bass_fretless': 'Fretless Bass',
+  'bass_synth': 'Synth Bass'
+};
+// Strumento basso corrente (usato da audio-engine.js tramite window.currentBassSound)
+window.currentBassSound = 'bass_electric';
+
 
 
 let sezione = 'none';
@@ -30,7 +41,7 @@ function assignBassPatterns() {
 
 function refreshBassDisplay() {
   const el = document.getElementById('instrBassName');
-  if (el) el.innerHTML = 'Electric Bass';
+  if (el) el.innerHTML = BASS_DISPLAY_NAMES[window.currentBassSound] || window.currentBassSound;
 }
 
 // COUNT-IN
@@ -103,7 +114,7 @@ function selectTheme(i, keepLoc = false) {
   // Se l'audio e' gia' inizializzato, carica i campioni
   if (ctx) {
     Sampler.loadInstrument(THEMES[i].sound);
-    Sampler.loadInstrument('bass');
+    Sampler.loadInstrument(window.currentBassSound);
     Sampler.loadDrums();
   }
 
@@ -134,7 +145,10 @@ function doFullRandom() {
   // altrimenti il Sampler carica lo strumento originale del tema
   // mentre l'app poi usa grandpiano (che non e' stato caricato)
   THEMES[i].sound = 'grandpiano';
+  // Randomizza anche il basso fra i 4 disponibili
+  window.currentBassSound = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
   selectTheme(i, false);
+  refreshBassDisplay();
   const nb = Math.round(100 + (Math.random() - 0.5) * 30);
   setTempo(Math.max(85, Math.min(115, nb)));
   document.getElementById('tempoSlider').value = bpm;
@@ -193,19 +207,40 @@ function toggleSezioneMusicale() {
 }
 
 // Cambia solo lo strumento principale (accordi), indipendente dal basso
-function randomMainInstrument() {
+// Mostra "caricamento..." durante il download del soundfont HD
+async function randomMainInstrument() {
   const cur = THEMES[themeIdx].sound;
   let next = cur;
   while (next === cur) next = randomWeightedSound();
   THEMES[themeIdx].sound = next;
-  if (ctx) Sampler.loadInstrument(next);
+
+  const nameEl = document.getElementById('instrName');
+  const btnEl = document.getElementById('btnRndMain');
+  if (btnEl) btnEl.disabled = true;
+  if (nameEl) nameEl.innerHTML = '⌛ caricamento...';
+
+  if (ctx) await Sampler.loadInstrument(next);
+
+  if (btnEl) btnEl.disabled = false;
   refreshChordDisplay();
 }
 
-// Cambia solo il motore basso, indipendente dallo strumento principale
-function randomBassInstrument() {
-  // C'è solo un basso HD SoundFont ora
-  bassEngine = 0;
+// Cambia solo il basso, indipendente dallo strumento principale
+// Mostra "caricamento..." durante il download del soundfont HD
+async function randomBassInstrument() {
+  const cur = window.currentBassSound;
+  let next = cur;
+  while (next === cur) next = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
+  window.currentBassSound = next;
+
+  const nameEl = document.getElementById('instrBassName');
+  const btnEl = document.getElementById('btnRndBass');
+  if (btnEl) btnEl.disabled = true;
+  if (nameEl) nameEl.innerHTML = '⌛ caricamento...';
+
+  if (ctx) await Sampler.loadInstrument(next);
+
+  if (btnEl) btnEl.disabled = false;
   refreshBassDisplay();
 }
 
@@ -266,7 +301,7 @@ async function startPlay() {
   // Avvia il caricamento HD subito dopo l'attivazione dell'AudioContext
   await Promise.all([
     Sampler.loadInstrument(THEMES[themeIdx].sound),
-    Sampler.loadInstrument('bass'),
+    Sampler.loadInstrument(window.currentBassSound),
     Sampler.loadDrums()
   ]);
 
@@ -314,4 +349,10 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
   refreshChordDisplay(); newLocationForTheme(i); refreshBassDisplay();
+
+  // Avvia il preload dei suoni (AudioContext partira' in stato suspended, ma permette di decodificare)
+  initAudio();
+  Sampler.loadInstrument(THEMES[i].sound);
+  Sampler.loadInstrument(window.currentBassSound);
+  Sampler.loadDrums();
 });
