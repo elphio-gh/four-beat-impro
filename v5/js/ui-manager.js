@@ -52,8 +52,114 @@ const COLOR_LABELS = {
 const THEME_QUEUE_KEY = 'themeQueue_v05g';
 const THEME_RECENT_KEY = 'themeRecent_v05g';
 const THEME_RECENT_FAMILY_KEY = 'themeRecentFamily_v05g';
+const THEME_RECENT_SIGNATURE_KEY = 'themeRecentSignature_v05g';
 const RECENT_THEME_WINDOW = 12;
 const RECENT_FAMILY_WINDOW = 4;
+const RECENT_SIGNATURE_WINDOW = 6;
+
+const RHYTHM_GROUPS = {
+  sparse: [0, 1, 2, 3],
+  steady: [2, 3, 5, 6],
+  push: [4, 5, 6, 7, 8],
+  busy: [4, 6, 7, 8]
+};
+
+const BASS_PROFILE_GROUPS = {
+  pedal: [0, 1, 7],
+  step: [1, 2, 5],
+  walk: [3, 6],
+  ostinato: [2, 4],
+  sync: [5, 7]
+};
+
+const FORM_VARIANTS = {
+  balanced: { strofa: 4, rit: 4 },
+  verseLead: { strofa: 5, rit: 3 },
+  hookLift: { strofa: 3, rit: 4 },
+  callResponse: { strofa: 3, rit: 3 },
+  shortBurst: { strofa: 2, rit: 4 }
+};
+
+const ARRANGEMENT_TEMPLATES = [
+  {
+    id: 'wide_open',
+    rhythmTag: 'sparse',
+    form: 'balanced',
+    bassProfile: 'pedal',
+    tensionLift: 1.08,
+    barPlans: [
+      { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
+    ]
+  },
+  {
+    id: 'answer_back',
+    rhythmTag: 'steady',
+    form: 'callResponse',
+    bassProfile: 'sync',
+    tensionLift: 1.12,
+    barPlans: [
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 2 }, { chordIndex: 0, offset: 2, span: 2, tag: 'turn' }] }
+    ]
+  },
+  {
+    id: 'turnaround_push',
+    rhythmTag: 'busy',
+    form: 'hookLift',
+    bassProfile: 'walk',
+    tensionLift: 1.16,
+    barPlans: [
+      { rhythm: 'steady', bass: 'walk', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'walk', events: [{ chordIndex: 1, offset: 0, span: 2 }, { chordIndex: 2, offset: 2, span: 2 }] },
+      { rhythm: 'busy', bass: 'walk', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] },
+      { rhythm: 'push', bass: 'walk', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
+    ]
+  },
+  {
+    id: 'modal_pedal',
+    rhythmTag: 'steady',
+    form: 'verseLead',
+    bassProfile: 'ostinato',
+    tensionLift: 1.06,
+    barPlans: [
+      { rhythm: 'sparse', bass: 'pedal', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'steady', bass: 'ostinato', events: [{ chordIndex: 0, offset: 0, span: 2 }, { chordIndex: 1, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'ostinato', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'step', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
+    ]
+  },
+  {
+    id: 'chorus_lift',
+    rhythmTag: 'busy',
+    form: 'shortBurst',
+    bassProfile: 'sync',
+    tensionLift: 1.2,
+    barPlans: [
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 0, offset: 0, span: 2 }, { chordIndex: 1, offset: 2, span: 2 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] },
+      { rhythm: 'busy', bass: 'sync', events: [{ chordIndex: 3, offset: 0, span: 4 }] }
+    ]
+  },
+  {
+    id: 'late_resolve',
+    rhythmTag: 'steady',
+    form: 'balanced',
+    bassProfile: 'step',
+    tensionLift: 1.1,
+    barPlans: [
+      { rhythm: 'sparse', bass: 'step', events: [{ chordIndex: 0, offset: 0, span: 4 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 1, offset: 0, span: 4 }] },
+      { rhythm: 'steady', bass: 'step', events: [{ chordIndex: 2, offset: 0, span: 4 }] },
+      { rhythm: 'push', bass: 'sync', events: [{ chordIndex: 2, offset: 0, span: 2 }, { chordIndex: 3, offset: 2, span: 2 }] }
+    ]
+  }
+];
 
 // Lista bassi mobile-first disponibili
 const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
@@ -65,6 +171,7 @@ const BASS_DISPLAY_NAMES = {
 };
 // Strumento basso corrente (usato da audio-engine.js tramite window.currentBassSound)
 window.currentBassSound = 'bass_electric';
+window.currentThemeArrangement = null;
 
 
 
@@ -84,9 +191,33 @@ function nextInList(list, current) {
   return list[(idx + 1) % list.length];
 }
 
-function assignRhythms() { for (let i = 0; i < 4; i++) chordRhythms[i] = Math.floor(Math.random() * RHYTHM_PATTERNS.length); }
+function randomFromPool(pool, fallbackLength) {
+  const list = pool?.length ? pool : Array.from({ length: fallbackLength }, (_, idx) => idx);
+  return randomFromList(list);
+}
+
+function pickBassSoundForProfile(profileName, style) {
+  if (profileName === 'walk') return 'bass_acoustic';
+  if (profileName === 'ostinato') return style === 'latin' || style === 'tango' ? 'bass_fretless' : 'bass_synth';
+  if (profileName === 'pedal') return style === 'bossa' || style === 'latin' ? 'bass_fretless' : 'bass_acoustic';
+  if (profileName === 'sync') return 'bass_electric';
+  return 'bass_electric';
+}
+
+function assignRhythms() {
+  const plans = window.currentThemeArrangement?.barPlans || [];
+  for (let i = 0; i < 4; i++) {
+    const rhythmGroup = plans[i]?.rhythm || window.currentThemeArrangement?.rhythmTag || 'steady';
+    chordRhythms[i] = randomFromPool(RHYTHM_GROUPS[rhythmGroup], RHYTHM_PATTERNS.length);
+  }
+}
+
 function assignBassPatterns() {
-  for (let i = 0; i < 4; i++) bassPatterns[i] = Math.floor(Math.random() * BASS_PATTERNS.length);
+  const plans = window.currentThemeArrangement?.barPlans || [];
+  for (let i = 0; i < 4; i++) {
+    const bassProfile = plans[i]?.bass || window.currentThemeArrangement?.bassProfile || 'step';
+    bassPatterns[i] = randomFromPool(BASS_PROFILE_GROUPS[bassProfile], BASS_PATTERNS.length);
+  }
   bassEngine = 0;
   refreshBassDisplay();
 }
@@ -120,6 +251,16 @@ function countChordType(theme, type) {
 
 function isLowercaseMinorStart(theme) {
   return /^i/.test(theme.fn[0] || '');
+}
+
+function resolveOpeningType(theme) {
+  const firstFn = theme.fn[0] || '';
+  const firstChord = theme.ch[0]?.t || 'maj';
+  if (firstChord === 'sus2' || firstChord === 'sus4') return 'suspended';
+  if (firstChord === 'dom7' || /^V/.test(firstFn)) return 'dominant_launch';
+  if (['min', 'min7', 'min6'].includes(firstChord) || isLowercaseMinorStart(theme)) return 'minor_launch';
+  if (/^(ii|iii|vi|b)/.test(firstFn)) return 'deceptive_launch';
+  return 'tonic_stable';
 }
 
 function resolveThemeProfile(theme) {
@@ -173,7 +314,9 @@ function resolveThemeProfile(theme) {
   else if (simpleDiatonic) family = 'plain_major';
   else family = 'extended_tonal';
 
-  theme._profile = { style, color, family };
+  const opening = resolveOpeningType(theme);
+
+  theme._profile = { style, color, family, opening };
   return theme._profile;
 }
 
@@ -226,6 +369,61 @@ function writeStoredList(key, list) {
   try {
     localStorage.setItem(key, JSON.stringify(list));
   } catch {}
+}
+
+function arrangementSignature(profile, arrangement) {
+  return [profile.style, profile.family, profile.opening, arrangement.id, arrangement.rhythmTag, arrangement.bassProfile].join('|');
+}
+
+function chooseArrangementTemplate(profile) {
+  const recentSignatures = readStoredList(THEME_RECENT_SIGNATURE_KEY).filter((value) => typeof value === 'string');
+  let candidates = ARRANGEMENT_TEMPLATES.filter((template) => {
+    if (profile.family === 'jazz_turnaround') return ['turnaround_push', 'late_resolve', 'chorus_lift'].includes(template.id);
+    if (profile.family === 'dominant_blues') return ['answer_back', 'chorus_lift', 'wide_open'].includes(template.id);
+    if (profile.family === 'minor_phrygian' || profile.family === 'minor_cinematic') return ['modal_pedal', 'wide_open', 'late_resolve'].includes(template.id);
+    if (profile.family === 'plain_major' || profile.family === 'pop_loop' || profile.family === 'suspended_pop') return ['wide_open', 'answer_back', 'chorus_lift'].includes(template.id);
+    if (profile.family === 'chromatic_theatre') return ['late_resolve', 'wide_open', 'answer_back'].includes(template.id);
+    return true;
+  });
+
+  if (profile.opening === 'dominant_launch') {
+    candidates = candidates.filter((template) => template.id !== 'wide_open');
+  } else if (profile.opening === 'suspended') {
+    candidates = candidates.filter((template) => template.id !== 'turnaround_push');
+  }
+
+  const fresh = candidates.filter((template) => !recentSignatures.includes(arrangementSignature(profile, template)));
+  return randomFromList((fresh.length ? fresh : candidates.length ? candidates : ARRANGEMENT_TEMPLATES));
+}
+
+function buildThemeArrangement(theme) {
+  const profile = resolveThemeProfile(theme);
+  const template = chooseArrangementTemplate(profile);
+  const arrangement = {
+    ...template,
+    opening: profile.opening,
+    style: profile.style,
+    family: profile.family,
+    color: profile.color
+  };
+
+  const signature = arrangementSignature(profile, arrangement);
+  const recentSignatures = readStoredList(THEME_RECENT_SIGNATURE_KEY).filter((value) => typeof value === 'string');
+  writeStoredList(
+    THEME_RECENT_SIGNATURE_KEY,
+    [signature, ...recentSignatures.filter((value) => value !== signature)].slice(0, RECENT_SIGNATURE_WINDOW)
+  );
+  return arrangement;
+}
+
+function applyThemeArrangement(theme, { preserveBass = false } = {}) {
+  const arrangement = buildThemeArrangement(theme);
+  window.currentThemeArrangement = arrangement;
+  targets = { ...(FORM_VARIANTS[arrangement.form] || FORM_VARIANTS.balanced) };
+  if (!preserveBass) {
+    window.currentBassSound = pickBassSoundForProfile(arrangement.bassProfile, theme.perc);
+  }
+  return arrangement;
 }
 
 function pickNextThemeIndex() {
@@ -335,6 +533,9 @@ window.onInstrumentLoaded = function(name) {
 function selectTheme(i, keepLoc = false) {
   themeIdx = i;
   applyThemeProfile(THEMES[i]);
+  applyThemeArrangement(THEMES[i], { preserveBass: false });
+  assignRhythms();
+  assignBassPatterns();
   THEMES[i].sound = getThemeSound(THEMES[i]);
   window.currentBassSound = normalizeBassSound(window.currentBassSound);
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
@@ -373,7 +574,6 @@ function doFullRandom() {
   if (isPlaying || isCountingIn) stopAll(true);
   const i = pickNextThemeIndex();
   THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
-  window.currentBassSound = randomFromList(BASS_LIST);
   selectTheme(i, false);
   refreshBassDisplay();
   const nb = Math.round(100 + (Math.random() - 0.5) * 30);
@@ -419,6 +619,7 @@ function updateStrutturaStatus() {
 
 function resetStruttura() {
   sezione = 'none'; sezCounter = { strofa: 0, rit: 0 }; introGiro = 0;
+  targets = { ...(FORM_VARIANTS[window.currentThemeArrangement?.form] || FORM_VARIANTS.balanced) };
   document.body.classList.remove('sec-intro', 'sec-strofa', 'sec-rit');
   document.getElementById('pvIntro').textContent = '—';
   document.getElementById('prIntro').textContent = '';
@@ -566,7 +767,7 @@ window.addEventListener('DOMContentLoaded', () => {
   themeIdx = i;
   applyThemeProfile(THEMES[i]);
   THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
-  window.currentBassSound = randomFromList(BASS_LIST);
+  applyThemeArrangement(THEMES[i], { preserveBass: false });
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
   bassEngine = 0;
   bpm = Math.round(Math.max(85, Math.min(115, 100 + (Math.random() - 0.5) * 30)));

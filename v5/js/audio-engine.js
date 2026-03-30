@@ -171,6 +171,32 @@ function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
   notes.forEach((n, i) => playNote(n, t0, dur, (i === 0 ? 0.54 : 0.46) * volScale, sound));
 }
 
+function scalePattern(pattern, spanBeats) {
+  if (!pattern?.length) return [0];
+  const scaled = [...new Set(pattern
+    .map((offset) => Number(((offset / 4) * spanBeats).toFixed(2)))
+    .filter((offset) => offset >= 0 && offset < spanBeats))];
+  return scaled.length ? scaled : [0];
+}
+
+function currentSectionEnergy() {
+  if (sezione === 'intro') return 0.84;
+  if (sezione === 'rit') return window.currentThemeArrangement?.tensionLift || 1.14;
+  return 1;
+}
+
+function playChordSegment(notes, t0, spb, spanBeats, sound, rhythmIdx, volScale = 1.0) {
+  const basePattern = RHYTHM_PATTERNS[rhythmIdx % RHYTHM_PATTERNS.length];
+  const offsets = scalePattern(basePattern, spanBeats);
+  offsets.forEach((offset, hitIndex) => {
+    const hitT = t0 + offset * spb;
+    const nextOff = hitIndex + 1 < offsets.length ? offsets[hitIndex + 1] : spanBeats;
+    const dur = Math.max(0.18, (nextOff - offset) * spb * 0.86);
+    const isDown = offset === 0;
+    playChordAt(notes, hitT, dur, sound, volScale * (isDown ? 1.0 : 0.8), false);
+  });
+}
+
 // PERCUSSION
 const DRUM_VOICES = {
   kick: { sample: 'kick', midi: 36, duration: 0.4, volume: 0.42 },
@@ -232,16 +258,29 @@ function perc(beat, t, type) {
   }
 }
 
-function playBass(rootMidi, t0, spb, patternIdx) {
+function playBass(rootMidi, t0, spb, patternIdx, spanBeats = 4, volScale = 1.0) {
   const pattern = BASS_PATTERNS[patternIdx % BASS_PATTERNS.length];
+  const scaledPattern = pattern
+    .map(([offset, semitones]) => [Number(((offset / 4) * spanBeats).toFixed(2)), semitones])
+    .filter(([offset]) => offset >= 0 && offset < spanBeats);
+  const hits = scaledPattern.length ? scaledPattern : [[0, -12]];
 
-  pattern.forEach(([offset, semitones]) => {
+  hits.forEach(([offset, semitones]) => {
     const note = rootMidi + semitones;
     const hitT = t0 + offset * spb;
-    const dur = spb * 0.55;
+    const dur = Math.max(spb * 0.4, spanBeats * spb * 0.38);
 
-    Sampler.playNote(window.currentBassSound || 'bass_electric', note, hitT, dur, 0.24);
+    Sampler.playNote(window.currentBassSound || 'bass_electric', note, hitT, dur, 0.24 * volScale);
   });
+}
+
+function getBarPlan(theme, barIndex) {
+  const arrangement = window.currentThemeArrangement;
+  return arrangement?.barPlans?.[barIndex] || {
+    rhythm: 'steady',
+    bass: 'step',
+    events: [{ chordIndex: barIndex, offset: 0, span: 4 }]
+  };
 }
 
 function scheduler() {
@@ -256,23 +295,29 @@ function scheduler() {
 function scheduleBeat(beat, t) {
   const theme = THEMES[themeIdx], spb = 60 / bpm, bpc = 4;
   const cIdx = Math.floor(beat / bpc) % 4, bInC = beat % bpc;
+  const sectionEnergy = currentSectionEnergy();
   perc(bInC, t, theme.perc);
   if (metronomeOn) metroClick(t, bInC === 0);
   if (bInC === 0) {
-    const cd = theme.ch[cIdx];
-    if (!endingDone) playBass(cd.r + 12, t, spb, bassPatterns[cIdx]);
+    const barPlan = getBarPlan(theme, cIdx);
+    const primaryEvent = barPlan.events[0];
+    const primaryChord = theme.ch[primaryEvent.chordIndex];
     if (!endingDone) {
-      const notes = bNotes(cd.r + 12, cd.t);
-      const pattern = RHYTHM_PATTERNS[chordRhythms[cIdx]];
-      pattern.forEach((offset, hi) => {
-        const hitT = t + offset * spb;
-        const nextOff = hi + 1 < pattern.length ? pattern[hi + 1] : 4;
-        const dur = (nextOff - offset) * spb * 0.86;
-        const isDown = offset === 0;
-        playChordAt(notes, hitT, dur, theme.sound, isDown ? 1.0 : 0.78, false);
+      const bassEvents = (barPlan.bass === 'pedal' && barPlan.events.length > 1) ? [primaryEvent] : barPlan.events;
+      bassEvents.forEach((event, eventIdx) => {
+        const chord = theme.ch[event.chordIndex];
+        playBass(chord.r + 12, t + event.offset * spb, spb, bassPatterns[cIdx], event.span, sectionEnergy * (eventIdx === 0 ? 1 : 0.92));
       });
     }
-    schedUI(() => highlightChord(cIdx), t);
+    if (!endingDone) {
+      barPlan.events.forEach((event, eventIdx) => {
+        const chord = theme.ch[event.chordIndex];
+        const notes = bNotes(chord.r + 12, chord.t);
+        playChordSegment(notes, t + event.offset * spb, spb, event.span, theme.sound, chordRhythms[cIdx], sectionEnergy * (eventIdx === 0 ? 1 : 0.94));
+        schedUI(() => highlightChord(event.chordIndex), t + event.offset * spb);
+      });
+    }
+    schedUI(() => highlightChord(primaryEvent.chordIndex), t);
   }
   schedUI(() => highlightBeat(bInC), t);
   if (beat === 0) schedUI(() => { introGiro = 1; setStruttura('intro'); }, t);
