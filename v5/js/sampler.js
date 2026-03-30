@@ -12,6 +12,7 @@ const Sampler = {
   baseUrl: window.location.protocol === 'file:'
     ? 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/'
     : 'soundfonts/',
+  fallbackCdnUrl: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/',
 
   // Mappa nomi interni dell'app verso nomi FluidR3 del CDN
   map: {
@@ -48,7 +49,7 @@ const Sampler = {
    */
   async loadInstrument(name) {
     const internalName = this.map[name] || name;
-    const assetVersion = window.APP_VERSION || '0.5a';
+    const assetVersion = window.APP_VERSION || '0.5b';
 
     // Evita caricamenti duplicati: se caricato, torna subito; se in caricamento, torna la Promise
     if (this.instruments[name]) return Promise.resolve();
@@ -64,57 +65,37 @@ const Sampler = {
 
     const loadPromise = (async () => {
       try {
-        // STEP 1: Scarica il file .js dal CDN (contiene i campioni come data URIs base64)
-        const response = await fetch(`${this.baseUrl}${internalName}-ogg.js?v=${encodeURIComponent(assetVersion)}`, {
-          cache: 'no-store'
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
-        const scriptText = await response.text();
+        const sourceCandidates = [
+          `${this.baseUrl}${internalName}-ogg.js?v=${encodeURIComponent(assetVersion)}`
+        ];
 
-        // STEP 2: Esegue lo script nel contesto globale per popolare window.MIDI.Soundfont
-        // I file CDN dichiarano "var MIDI = ..." che con new Function resterebbe locale
-        // e non popolerebbe mai l'oggetto globale. Serve eval nel contesto globale.
-        window.eval(scriptText);
-
-        // STEP 3: Estrae i dati audio dall'oggetto globale
-        const soundData = window.MIDI.Soundfont[internalName];
-        if (!soundData) throw new Error(`Dati non trovati per "${internalName}" dopo eval`);
-
-        const noteKeys = Object.keys(soundData);
-        console.log(`[Sampler] ${name}: trovate ${noteKeys.length} note, avvio decodifica...`);
-
-        // STEP 4: Decodifica ogni campione base64 in AudioBuffer
-        const buffers = {};
-        let decoded = 0, failed = 0;
-
-        const promises = noteKeys.map(async (note) => {
-          try {
-            const base64Data = soundData[note].split(',')[1];
-            if (!base64Data) { failed++; return; }
-
-            // Converte base64 in ArrayBuffer binario
-            const raw = atob(base64Data);
-            const arr = new Uint8Array(raw.length);
-            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-
-            // .slice(0) crea una copia pulita del buffer, necessaria perche'
-            // decodeAudioData "detaches" (trasferisce) il buffer originale
-            const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
-            buffers[note] = audioBuffer;
-            decoded++;
-          } catch (e) {
-            failed++;
-          }
-        });
-
-        await Promise.all(promises);
-
-        if (decoded === 0) {
-          throw new Error(`Nessun campione decodificato (${failed} falliti) — formato audio non supportato?`);
+        if (this.baseUrl !== this.fallbackCdnUrl) {
+          sourceCandidates.push(`${this.fallbackCdnUrl}${internalName}-ogg.js?v=${encodeURIComponent(assetVersion)}`);
         }
 
-        this.instruments[name] = buffers;
-        console.log(`[Sampler] HD Caricato: ${name} — ${decoded} note OK, ${failed} fallite`);
+        sourceCandidates.push(`${this.fallbackCdnUrl}${internalName}-mp3.js?v=${encodeURIComponent(assetVersion)}`);
+
+        let loaded = null;
+        let lastError = null;
+
+        for (const sourceUrl of sourceCandidates) {
+          try {
+            loaded = await this.fetchAndDecodeSoundfont(sourceUrl, internalName, name);
+            console.log(`[Sampler] HD Caricato: ${name} da ${sourceUrl} — ${loaded.decoded} note OK, ${loaded.failed} fallite`);
+            break;
+          } catch (err) {
+            lastError = err;
+            console.warn(`[Sampler] Tentativo fallito per "${name}" da ${sourceUrl}:`, err);
+          } finally {
+            delete window.MIDI.Soundfont[internalName];
+          }
+        }
+
+        if (!loaded) {
+          throw lastError || new Error(`Impossibile caricare "${name}" in nessun formato`);
+        }
+
+        this.instruments[name] = loaded.buffers;
 
         // Pulizia memoria globale: i dati raw non servono piu' (i buffer decodificati sono in this.instruments)
         delete window.MIDI.Soundfont[internalName];
@@ -131,6 +112,47 @@ const Sampler = {
 
     this.loading[name] = loadPromise;
     return loadPromise;
+  },
+
+  async fetchAndDecodeSoundfont(sourceUrl, internalName, label) {
+    const response = await fetch(sourceUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
+
+    const scriptText = await response.text();
+    window.eval(scriptText);
+
+    const soundData = window.MIDI.Soundfont[internalName];
+    if (!soundData) throw new Error(`Dati non trovati per "${internalName}" dopo eval`);
+
+    const noteKeys = Object.keys(soundData);
+    console.log(`[Sampler] ${label}: trovate ${noteKeys.length} note da ${sourceUrl}, avvio decodifica...`);
+
+    const buffers = {};
+    let decoded = 0, failed = 0;
+
+    for (const note of noteKeys) {
+      try {
+        const base64Data = soundData[note].split(',')[1];
+        if (!base64Data) { failed++; continue; }
+
+        const raw = atob(base64Data);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+        // Decodifica sequenziale: su mobile Firefox evita picchi di memoria e abort sporadici.
+        const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
+        buffers[note] = audioBuffer;
+        decoded++;
+      } catch (e) {
+        failed++;
+      }
+    }
+
+    if (decoded === 0) {
+      throw new Error(`Nessun campione decodificato (${failed} falliti)`);
+    }
+
+    return { buffers, decoded, failed };
   },
 
   /**

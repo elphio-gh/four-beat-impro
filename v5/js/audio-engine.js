@@ -41,17 +41,17 @@ function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
 // PERCUSSION
 function kick(t) { Sampler.playDrum('kick', 36, t, 0.4, 0.65 * 0.65); }
 function snare(t, vol = 0.4) { Sampler.playDrum('snare', 48, t, 0.22, vol * 0.7); }
-function hihat(t, vol = 0.12, open = false) { 
+function hihat(t, vol = 0.12, open = false) {
   const dur = open ? 0.38 : 0.07;
-  Sampler.playDrum('hihat', 84, t, dur, vol * 1.2); 
+  Sampler.playDrum('hihat', 84, t, dur, vol * 1.2);
 }
 function rim(t) { Sampler.playDrum('rim', 76, t, 0.05, 0.3); }
 function metroClick(t, isOne) {
   const vol = isOne ? 0.9 : 0.5;
   Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5);
 }
-function clickSound(t, vol = 0.65) { 
-  Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5); 
+function clickSound(t, vol = 0.65) {
+  Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5);
 }
 
 function perc(beat, t, type) {
@@ -70,7 +70,7 @@ function perc(beat, t, type) {
 
 function playBass(rootMidi, t0, spb, patternIdx) {
   const pattern = BASS_PATTERNS[patternIdx % BASS_PATTERNS.length];
-  
+
   pattern.forEach(([offset, semitones]) => {
     const note = rootMidi + semitones;
     const hitT = t0 + offset * spb;

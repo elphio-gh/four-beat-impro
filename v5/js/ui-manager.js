@@ -267,7 +267,7 @@ function toggleMetronome() {
 function setTempo(v) { bpm = v; document.getElementById('tempoVal').textContent = v; }
 function setStatus(txt, cls) { const s = document.getElementById('statusBar'); s.textContent = txt; s.className = 'status-bar' + (cls ? ' ' + cls : ''); }
 
-function togglePlay() {
+async function togglePlay() {
   if (isCountingIn) return;
   initAudio(); // Inizializza AudioContext al primo tocco
   
@@ -280,7 +280,7 @@ function togglePlay() {
     setStatus('⏸ in pausa', '');
   } else {
     if (ctx && ctx.state === 'suspended') {
-      ctx.resume();
+      await ctx.resume();
       isPlaying = true;
       document.getElementById('btnPlay').textContent = '⏸ Pausa';
       document.getElementById('btnPlay').classList.add('on');
@@ -293,7 +293,7 @@ function togglePlay() {
 
 async function startPlay() {
   initAudio();
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state === 'suspended') await ctx.resume();
   
   document.getElementById('btnPlay').disabled = true;
   setStatus('caricamento strumenti HD in corso...', '');
@@ -349,10 +349,4 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
   refreshChordDisplay(); newLocationForTheme(i); refreshBassDisplay();
-
-  // Avvia il preload dei suoni (AudioContext partira' in stato suspended, ma permette di decodificare)
-  initAudio();
-  Sampler.loadInstrument(THEMES[i].sound);
-  Sampler.loadInstrument(window.currentBassSound);
-  Sampler.loadDrums();
 });
