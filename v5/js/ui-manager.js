@@ -49,6 +49,7 @@ function bNotes(r, t) { return CHORD_INT[t].map(i => r + i); }
 function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', min7: 'm7', sus4: 'sus4', sus2: 'sus2', maj6: '6', dim7: '°7', aug: '+', min6: 'm6' }; return NOTES[r % 12] + (s[t] ?? ''); }
 function normalizeMainSound(sound) { return MAIN_INSTRUMENT_LIST.includes(sound) ? sound : (MAIN_SOUND_ALIASES[sound] || 'grandpiano'); }
 function normalizeBassSound(sound) { return BASS_LIST.includes(sound) ? sound : 'bass_electric'; }
+function randomFromList(list) { return list[Math.floor(Math.random() * list.length)]; }
 function nextInList(list, current) {
   const idx = list.indexOf(current);
   if (idx === -1) return list[0];
@@ -167,8 +168,8 @@ function doFullRandom() {
   btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
   if (isPlaying || isCountingIn) stopAll(true);
   const i = Math.floor(Math.random() * THEMES.length);
-  THEMES[i].sound = MAIN_INSTRUMENT_LIST[Math.floor(Math.random() * MAIN_INSTRUMENT_LIST.length)];
-  window.currentBassSound = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
+  THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
+  window.currentBassSound = randomFromList(BASS_LIST);
   selectTheme(i, false);
   refreshBassDisplay();
   const nb = Math.round(100 + (Math.random() - 0.5) * 30);
@@ -359,7 +360,8 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => { document.getElementById('curtL').classList.add('open'); document.getElementById('curtR').classList.add('open'); }, 150);
   const i = Math.floor(Math.random() * THEMES.length);
   themeIdx = i;
-  THEMES[i].sound = 'grandpiano';
+  THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
+  window.currentBassSound = randomFromList(BASS_LIST);
   bassEngine = 0;
   bpm = Math.round(Math.max(85, Math.min(115, 100 + (Math.random() - 0.5) * 30)));
   document.getElementById('tempoSlider').value = bpm;
