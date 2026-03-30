@@ -169,6 +169,7 @@ function selectTheme(i, keepLoc = false) {
   themeIdx = i;
   THEMES[i].sound = getThemeSound(THEMES[i]);
   window.currentBassSound = normalizeBassSound(window.currentBassSound);
+  if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
   bpm = THEMES[i].tempo;
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
@@ -397,6 +398,7 @@ window.addEventListener('DOMContentLoaded', () => {
   themeIdx = i;
   THEMES[i].sound = randomFromList(MAIN_INSTRUMENT_LIST);
   window.currentBassSound = randomFromList(BASS_LIST);
+  if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
   bassEngine = 0;
   bpm = Math.round(Math.max(85, Math.min(115, 100 + (Math.random() - 0.5) * 30)));
   document.getElementById('tempoSlider').value = bpm;

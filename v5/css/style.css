@@ -36,6 +36,24 @@ body {
   flex-shrink: 0;
 }
 .app-title { font-size: 13px; font-weight: 800; color: var(--gold); letter-spacing: 0.02em; }
+.version-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.version-current {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cream);
+  letter-spacing: .03em;
+}
+.version-link {
+  color: #ffffff99;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: underline;
+}
 
 /* ── STATUS ── */
 .status-wrap { padding: 0 14px 6px; flex-shrink: 0; }
@@ -287,8 +305,6 @@ body.sec-rit    { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); --sec-card: 
 .btn-finale:disabled { opacity: .3; cursor: default; }
 .btn-finale.armed { animation: pulserr .8s ease infinite; border-color: var(--red); color: #ff9090; }
 @keyframes pulserr { 0%,100%{box-shadow:0 0 0 rgba(255,64,64,0)} 50%{box-shadow:0 0 18px rgba(255,64,64,.6)} }
-
-.version-badge { font-size: 11px; font-weight: 700; color: var(--dim); letter-spacing: .05em; }
 
 /* ── METRO BUTTON ── */
 .metro-btn {

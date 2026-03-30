@@ -5,13 +5,14 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Stato Attuale
 
 - La versione principale pubblicata su GitHub Pages e' la `v5`, servita dalla root `index.html`.
-- La vecchia `v0.4` e' mantenuta in `failsafe/` come fallback stabile.
+- La vecchia `v0.4` e' mantenuta in `failsafe/` come versione precedente e fallback stabile.
 - Il percorso diretto `v5/index.html` resta disponibile per test o accesso esplicito.
 
 ## Caratteristiche
 
 - **Motore Audio mobile-first**: Web Audio API con sample pack locali leggeri, caricamento rapido e consumo dati ridotto su smartphone.
 - **Progressioni Armoniche**: Preset che spaziano tra pop, teatro musicale, jazz leggero, blues, modale e stili latini.
+- **Batterie per stile**: Ogni stile ritmico pesca tra 6 variazioni complete dedicate, sempre in 4/4.
 - **Cambio strumenti ciclico**: Lo strumento principale e il basso non cambiano in modo randomico, ma scorrono ciclicamente tra le opzioni disponibili.
 - **4 bassi distinti**: `Electric`, `Acoustic`, `Fretless` e `Synth`.
 - **Gestione Struttura**: Monitoraggio automatico di Intro, Strofa e Ritornello con indicatori di progresso.
@@ -28,8 +29,8 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Struttura Versioni
 
 - `index.html`: entrypoint principale, oggi allineato alla `v5`.
-- `v5/`: versione principale completa con UI split strumenti/basso e sample pack ottimizzati.
-- `failsafe/`: copia autonoma della `v0.4` da usare come fallback.
+- `v5/`: versione principale completa con UI split strumenti/basso, info stile/mood e variazioni ritmiche per stile.
+- `failsafe/`: copia autonoma della `v0.4` da usare come fallback o vecchia versione.
 
 ## Come si usa
 
@@ -43,7 +44,7 @@ Un'applicazione web interattiva progettata per supportare l'improvvisazione musi
 ## Note Operative
 
 - La `v5` e' ottimizzata per uso prevalente su smartphone.
-- Il failsafe `v0.4` resta disponibile se serve una versione piu' conservativa.
+- Il failsafe `v0.4` resta disponibile se serve una versione piu' conservativa o la vecchia esperienza.
 
 ## Licenza
 

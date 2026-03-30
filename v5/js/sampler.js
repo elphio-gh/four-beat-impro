@@ -171,7 +171,7 @@ const Sampler = {
     return ctx.decodeAudioData(bytes.slice(0));
   },
 
-  playDrum(name, midi, time, duration, volume) {
+  playDrum(name, midi, time, duration, volume, options = {}) {
     const packName = this.normalizeInstrumentName(name);
     const inst = this.instruments[packName];
     if (!inst || !inst.samples.length) return false;
@@ -179,6 +179,17 @@ const Sampler = {
     const sample = inst.samples[0];
     const source = ctx.createBufferSource();
     source.buffer = sample.buffer;
+    source.playbackRate.setValueAtTime(options.playbackRate || 1, time);
+
+    let signalNode = source;
+    if (options.filterType && options.filterFrequency) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = options.filterType;
+      filter.frequency.setValueAtTime(options.filterFrequency, time);
+      filter.Q.setValueAtTime(options.q || 0.7, time);
+      signalNode.connect(filter);
+      signalNode = filter;
+    }
 
     const gain = ctx.createGain();
     const peakVol = Math.min(volume * inst.gain, 1.5);
@@ -186,7 +197,7 @@ const Sampler = {
     gain.gain.linearRampToValueAtTime(peakVol, time + 0.006);
     gain.gain.exponentialRampToValueAtTime(0.001, time + Math.max(duration, 0.05) + 0.9);
 
-    source.connect(gain);
+    signalNode.connect(gain);
     gain.connect(dryGain);
     gain.connect(revNode);
 
