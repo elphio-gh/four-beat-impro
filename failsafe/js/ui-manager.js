@@ -4,41 +4,12 @@
  */
 
 // STATE
-let isPlaying = false, isCountingIn = false, endingArmed = false, endingDone = false, hasStartedPlayback = false;
+let isPlaying = false, isCountingIn = false, endingArmed = false, endingDone = false;
 let bpm = 120, themeIdx = 0, totalBeats = 0;
 let metronomeOn = false;
 let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
-
-const MAIN_INSTRUMENT_LIST = ['grandpiano', 'elecpiano', 'organ', 'accordion', 'vibraphone'];
-const MAIN_SOUND_ALIASES = {
-  jazzpiano: 'vibraphone',
-  pipeorgan: 'organ',
-  strings: 'organ',
-  brass: 'organ',
-  synthpad: 'organ',
-  nylonguitar: 'accordion',
-  distguitar: 'elecpiano',
-  steelguitar: 'elecpiano',
-  vibraphone: 'vibraphone',
-  marimba: 'elecpiano',
-  honkytonk: 'grandpiano',
-  harpsichord: 'grandpiano'
-};
-
-// Lista bassi mobile-first disponibili
-const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
-const BASS_DISPLAY_NAMES = {
-  'bass_electric': 'Electric Bass',
-  'bass_acoustic': 'Acoustic Bass',
-  'bass_fretless': 'Fretless Bass',
-  'bass_synth': 'Synth Bass'
-};
-// Strumento basso corrente (usato da audio-engine.js tramite window.currentBassSound)
-window.currentBassSound = 'bass_electric';
-
-
 
 let sezione = 'none';
 let sezCounter = { strofa: 0, rit: 0 };
@@ -47,24 +18,17 @@ let targets = { strofa: 4, rit: 4 };
 
 function bNotes(r, t) { return CHORD_INT[t].map(i => r + i); }
 function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', min7: 'm7', sus4: 'sus4', sus2: 'sus2', maj6: '6', dim7: '°7', aug: '+', min6: 'm6' }; return NOTES[r % 12] + (s[t] ?? ''); }
-function normalizeMainSound(sound) { return MAIN_INSTRUMENT_LIST.includes(sound) ? sound : (MAIN_SOUND_ALIASES[sound] || 'grandpiano'); }
-function normalizeBassSound(sound) { return BASS_LIST.includes(sound) ? sound : 'bass_electric'; }
-function nextInList(list, current) {
-  const idx = list.indexOf(current);
-  if (idx === -1) return list[0];
-  return list[(idx + 1) % list.length];
-}
 
 function assignRhythms() { for (let i = 0; i < 4; i++) chordRhythms[i] = Math.floor(Math.random() * RHYTHM_PATTERNS.length); }
 function assignBassPatterns() {
   for (let i = 0; i < 4; i++) bassPatterns[i] = Math.floor(Math.random() * BASS_PATTERNS.length);
-  bassEngine = 0;
+  bassEngine = Math.floor(Math.random() * BASS_ENGINES.length);
   refreshBassDisplay();
 }
 
 function refreshBassDisplay() {
-  const el = document.getElementById('instrBassName');
-  if (el) el.innerHTML = BASS_DISPLAY_NAMES[window.currentBassSound] || window.currentBassSound;
+  const el = document.getElementById('instrBass');
+  if (el) el.textContent = '🎸 ' + (BASS_NAMES[bassEngine] || '—');
 }
 
 // COUNT-IN
@@ -86,11 +50,7 @@ function doCountIn(onDone) {
   }, startT + 4 * spb);
 }
 
-let countInTimers = [];
-function schedUI(fn, audioTime) { 
-  const d = (audioTime - ctx.currentTime) * 1000; 
-  countInTimers.push(setTimeout(fn, Math.max(0, d))); 
-}
+function schedUI(fn, audioTime) { const d = (audioTime - ctx.currentTime) * 1000; setTimeout(fn, Math.max(0, d)); }
 
 // UI UPDATES
 function highlightChord(idx) {
@@ -108,9 +68,6 @@ function highlightBeat(b) {
 function refreshChordDisplay() {
   const t = THEMES[themeIdx];
   document.getElementById('chordDisplay').className = 'chord-display';
-
-  const isHD = Sampler.instruments[t.sound];
-
   for (let i = 0; i < 4; i++) {
     const card = document.getElementById('cc' + i);
     card.classList.remove('hidden');
@@ -120,30 +77,13 @@ function refreshChordDisplay() {
   }
   const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎸', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
   document.getElementById('instrIcon').textContent = icons[t.sound] || '🎹';
-  document.getElementById('instrName').innerHTML = (SOUND_NAMES[t.sound] || t.sound);
+  document.getElementById('instrName').textContent = SOUND_NAMES[t.sound] || t.sound;
 }
 
-// Callback quando uno strumento HD finisce di caricare
-window.onInstrumentLoaded = function(name) {
-  refreshChordDisplay();
-  refreshBassDisplay();
-};
-
 function selectTheme(i, keepLoc = false) {
-  themeIdx = i;
-  THEMES[i].sound = normalizeMainSound(THEMES[i].sound);
-  window.currentBassSound = normalizeBassSound(window.currentBassSound);
-  bpm = THEMES[i].tempo;
+  themeIdx = i; bpm = THEMES[i].tempo;
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
-  
-  // Se l'audio e' gia' inizializzato, carica i campioni
-  if (ctx) {
-    Sampler.loadInstrument(THEMES[i].sound);
-    Sampler.loadInstrument(window.currentBassSound);
-    Sampler.loadDrums();
-  }
-
   refreshChordDisplay();
   if (!keepLoc) newLocationForTheme(i);
   if (isPlaying) totalBeats = 0;
@@ -167,10 +107,9 @@ function doFullRandom() {
   btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
   if (isPlaying || isCountingIn) stopAll(true);
   const i = Math.floor(Math.random() * THEMES.length);
-  THEMES[i].sound = 'grandpiano';
-  window.currentBassSound = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
   selectTheme(i, false);
-  refreshBassDisplay();
+  THEMES[i].sound = 'grandpiano';
+  refreshChordDisplay();
   const nb = Math.round(100 + (Math.random() - 0.5) * 30);
   setTempo(Math.max(85, Math.min(115, nb)));
   document.getElementById('tempoSlider').value = bpm;
@@ -228,53 +167,20 @@ function toggleSezioneMusicale() {
   else if (sezione === 'rit') { sezCounter.strofa = 1; setStruttura('strofa'); }
 }
 
-// Cambia solo lo strumento principale (accordi), indipendente dal basso
-// Mostra "caricamento..." durante il download del pack audio leggero
-async function randomMainInstrument() {
-  const cur = normalizeMainSound(THEMES[themeIdx].sound);
-  const next = nextInList(MAIN_INSTRUMENT_LIST, cur);
+function randomInstrument() {
+  const cur = THEMES[themeIdx].sound;
+  let next = cur;
+  while (next === cur) next = randomWeightedSound();
   THEMES[themeIdx].sound = next;
-
-  const nameEl = document.getElementById('instrName');
-  const btnEl = document.getElementById('btnRndMain');
-  if (btnEl) btnEl.disabled = true;
-  if (nameEl) nameEl.innerHTML = '⌛ caricamento...';
-
-  if (ctx) await Sampler.loadInstrument(next);
-
-  if (btnEl) btnEl.disabled = false;
+  bassEngine = Math.floor(Math.random() * BASS_ENGINES.length);
+  refreshBassDisplay();
   refreshChordDisplay();
 }
 
-// Cambia solo il basso, indipendente dallo strumento principale
-// Mostra "caricamento..." durante il download del pack audio leggero
-async function randomBassInstrument() {
-  const cur = window.currentBassSound;
-  const next = nextInList(BASS_LIST, cur);
-  window.currentBassSound = next;
-
-  const nameEl = document.getElementById('instrBassName');
-  const btnEl = document.getElementById('btnRndBass');
-  if (btnEl) btnEl.disabled = true;
-  if (nameEl) nameEl.innerHTML = '⌛ caricamento...';
-
-  if (ctx) await Sampler.loadInstrument(next);
-
-  if (btnEl) btnEl.disabled = false;
-  refreshBassDisplay();
-}
-
-// Legacy: cambia entrambi (usato internamente da doFullRandom)
-function randomInstrument() {
-  randomMainInstrument();
-  randomBassInstrument();
-}
-
 function randomWeightedSound() {
-  return nextInList(MAIN_INSTRUMENT_LIST, normalizeMainSound(THEMES[themeIdx].sound));
+  if (Math.random() < 0.85) return PIANO_SOUNDS[Math.floor(Math.random() * PIANO_SOUNDS.length)];
+  return SOUND_LIST[Math.floor(Math.random() * SOUND_LIST.length)];
 }
-
-
 
 function toggleMetronome() {
   metronomeOn = !metronomeOn;
@@ -286,10 +192,8 @@ function toggleMetronome() {
 function setTempo(v) { bpm = v; document.getElementById('tempoVal').textContent = v; }
 function setStatus(txt, cls) { const s = document.getElementById('statusBar'); s.textContent = txt; s.className = 'status-bar' + (cls ? ' ' + cls : ''); }
 
-async function togglePlay() {
+function togglePlay() {
   if (isCountingIn) return;
-  initAudio(); // Inizializza AudioContext al primo tocco
-  
   if (isPlaying) {
     clearTimeout(schedTimer); schedTimer = null;
     ctx.suspend();
@@ -298,36 +202,27 @@ async function togglePlay() {
     document.getElementById('btnPlay').classList.remove('on');
     setStatus('⏸ in pausa', '');
   } else {
-    if (ctx && ctx.state === 'suspended' && hasStartedPlayback) {
-      await ctx.resume();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume();
       isPlaying = true;
       document.getElementById('btnPlay').textContent = '⏸ Pausa';
       document.getElementById('btnPlay').classList.add('on');
       nextBeatTime = ctx.currentTime + 0.05;
       schedTimer = setTimeout(scheduler, TICK_MS);
       setStatus('▶ ripresa', '');
-    } else {
-      await startPlay();
-    }
+    } else { startPlay(); }
   }
 }
 
-async function startPlay() {
-  initAudio();
-  if (ctx.state === 'suspended') await ctx.resume();
-  
+function startPlay() {
+  initAudio(); if (ctx.state === 'suspended') ctx.resume();
   document.getElementById('btnPlay').disabled = true;
-  setStatus('caricamento set audio...', '');
-
-  await Sampler.loadStartupPreset(THEMES[themeIdx].sound, window.currentBassSound);
-
   setStatus('1 ... 2 ... 3 ... 4 ...', '');
   resetStruttura();
   assignRhythms();
   assignBassPatterns();
-  
   doCountIn((musicStartT) => {
-    isPlaying = true; hasStartedPlayback = true; endingArmed = false; endingDone = false;
+    isPlaying = true; endingArmed = false; endingDone = false;
     totalBeats = 0; nextBeatTime = musicStartT;
     document.getElementById('btnPlay').textContent = '⏸ Pausa';
     document.getElementById('btnPlay').classList.add('on');
@@ -340,8 +235,7 @@ async function startPlay() {
 
 function stopAll(silent = false) {
   clearTimeout(schedTimer); schedTimer = null;
-  if (countInTimers) { countInTimers.forEach(t => clearTimeout(t)); countInTimers = []; }
-  isPlaying = false; isCountingIn = false; hasStartedPlayback = false; endingArmed = false; endingDone = false;
+  isPlaying = false; isCountingIn = false; endingArmed = false; endingDone = false;
   resetStruttura();
   for (let i = 1; i <= 4; i++) document.getElementById('cb' + i).classList.remove('active', 'count-in-active');
   document.getElementById('btnPlay').textContent = '▶ Play';
@@ -360,7 +254,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const i = Math.floor(Math.random() * THEMES.length);
   themeIdx = i;
   THEMES[i].sound = 'grandpiano';
-  bassEngine = 0;
   bpm = Math.round(Math.max(85, Math.min(115, 100 + (Math.random() - 0.5) * 30)));
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;

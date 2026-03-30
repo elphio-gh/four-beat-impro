@@ -7,31 +7,31 @@
 const SAMPLE_PACKS = {
   grandpiano: {
     kind: 'pitched',
-    gain: 2.6,
+    gain: 2.0,
     release: 0.35,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   elecpiano: {
     kind: 'pitched',
-    gain: 2.3,
+    gain: 1.8,
     release: 0.28,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   organ: {
     kind: 'pitched',
-    gain: 2.0,
+    gain: 1.6,
     release: 0.18,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   accordion: {
     kind: 'pitched',
-    gain: 2.1,
+    gain: 1.7,
     release: 0.2,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   vibraphone: {
     kind: 'pitched',
-    gain: 2.2,
+    gain: 1.7,
     release: 0.5,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
@@ -92,7 +92,7 @@ const SAMPLE_ALIASES = {
   harpsichord: 'grandpiano',
   distguitar: 'elecpiano',
   steelguitar: 'elecpiano',
-  vibraphone: 'elecpiano',
+  vibraphone: 'vibraphone',
   marimba: 'elecpiano'
 };
 
@@ -181,17 +181,17 @@ const Sampler = {
     source.buffer = sample.buffer;
 
     const gain = ctx.createGain();
-    const peakVol = volume * inst.gain;
+    const peakVol = Math.min(volume * inst.gain, 1.5);
     gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + Math.max(duration, 0.05) + 1.0);
+    gain.gain.linearRampToValueAtTime(peakVol, time + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + Math.max(duration, 0.05) + 0.9);
 
     source.connect(gain);
     gain.connect(dryGain);
     gain.connect(revNode);
 
     source.start(time);
-    source.stop(time + Math.max(duration, 0.05) + 1.2);
+    source.stop(time + Math.max(duration, 0.05) + 1.3);
     return true;
   },
 
@@ -209,18 +209,21 @@ const Sampler = {
 
     const gain = ctx.createGain();
     const safeDur = Math.max(duration, 0.1);
-    const peakVol = volume * inst.gain;
+    const peakVol = Math.min(volume * inst.gain, 1.1);
+    const attack = 0.012;
+    const holdTime = Math.max(time + attack, time + safeDur - 0.06);
+    const release = Math.max(inst.release || 0.3, 0.36);
     gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(peakVol, time + 0.01);
-    gain.gain.setValueAtTime(peakVol, time + Math.max(0.01, safeDur - 0.05));
-    gain.gain.exponentialRampToValueAtTime(0.001, time + safeDur + (inst.release || 0.3));
+    gain.gain.linearRampToValueAtTime(peakVol, time + attack);
+    gain.gain.setValueAtTime(peakVol, holdTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + safeDur + release);
 
     source.connect(gain);
     gain.connect(dryGain);
     gain.connect(revNode);
 
     source.start(time);
-    source.stop(time + safeDur + (inst.release || 0.3) + 0.1);
+    source.stop(time + safeDur + release + 0.18);
     return true;
   },
 

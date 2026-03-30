@@ -7,23 +7,27 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Alessandro Rizzo Simulator</title>
-  <base href="v5/">
-
+  
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css?v=0.4">
 </head>
 <body>
   <div class="curt curt-l" id="curtL"></div>
   <div class="curt curt-r" id="curtR"></div>
 
+  <!-- HEADER -->
   <div class="header" style="justify-content: space-between;">
     <div class="app-title">🎹🎸 Alessandro Rizzo Simulator 🎵🪗</div>
     <div style="display:flex; flex-direction:column; align-items:flex-end;">
-      <div class="version-badge" style="background:#5c2d91;">v 0.5f</div>
-      <a href="../failsafe/index.html" style="color:#ffffff99; font-size:12px; margin-top:5px; text-decoration:underline;">Apri failsafe v0.4</a>
+      <div class="version-badge">v 0.4 failsafe</div>
+      <a href="../index.html" style="color:#ffffff99; font-size:12px; margin-top:5px; text-decoration:underline;">Torna alla versione principale</a>
     </div>
   </div>
 
+  <!-- PROGRESS -->
   <div class="progress-row" id="progressRow">
     <div class="progress-block" id="pbIntro">
       <div class="progress-lbl">Intro</div>
@@ -42,10 +46,12 @@
     </div>
   </div>
 
+  <!-- STATUS -->
   <div class="status-wrap">
     <div class="status-bar" id="statusBar">premi Play per iniziare</div>
   </div>
 
+  <!-- COUNT 1 2 3 4 -->
   <div class="countin-inline" id="countinInline">
     <div class="countin-beat" id="cb1">1</div>
     <div class="countin-beat" id="cb2">2</div>
@@ -53,6 +59,7 @@
     <div class="countin-beat" id="cb4">4</div>
   </div>
 
+  <!-- CHORD CARDS -->
   <div class="chord-display" id="chordDisplay">
     <div class="chord-card" id="cc0"><div class="chord-num" id="cnum0">I</div><div class="chord-name" id="cname0">—</div><div class="chord-fn" id="cfn0"></div></div>
     <div class="chord-card" id="cc1"><div class="chord-num" id="cnum1">II</div><div class="chord-name" id="cname1">—</div><div class="chord-fn" id="cfn1"></div></div>
@@ -60,40 +67,38 @@
     <div class="chord-card" id="cc3"><div class="chord-num" id="cnum3">IV</div><div class="chord-name" id="cname3">—</div><div class="chord-fn" id="cfn3"></div></div>
   </div>
 
-  <div class="instrument-row-split">
-    <div class="instrument-card" id="instrCardMain">
-      <div class="instrument-card-header">
-        <div class="instrument-icon" id="instrIcon">🎹</div>
+  <!-- INSTRUMENT -->
+  <div class="instrument-row">
+    <div class="instrument-current" id="instrStrip">
+      <div class="instrument-icon" id="instrIcon">🎹</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <div class="instrument-name" id="instrName">Grand Piano</div>
+        <div class="instrument-hint" id="instrBass">🎸 —</div>
       </div>
-      <div class="instrument-card-hint">premi per cambiare strumento a caso</div>
-      <button class="instrument-rnd-btn" id="btnRndMain" onclick="randomMainInstrument()">🎲 cambia strumento</button>
     </div>
-    <div class="instrument-card" id="instrCardBass">
-      <div class="instrument-card-header">
-        <div class="instrument-icon">🎸</div>
-        <div class="instrument-name" id="instrBassName">—</div>
-      </div>
-      <div class="instrument-card-hint">premi per cambiare basso a caso</div>
-      <button class="instrument-rnd-btn" id="btnRndBass" onclick="randomBassInstrument()">🎲 cambia basso</button>
-    </div>
+    <button class="instrument-random" onclick="randomInstrument()">🎲<div class="instrument-random-lbl">cambia</div></button>
   </div>
 
+  <!-- LOCATION -->
   <div class="location-card">
     <div class="location-label">📍 Scena</div>
     <div class="location-text" id="locText">—</div>
     <button class="btn-loc" onclick="newLocation()" title="Nuova scena">↺</button>
   </div>
 
+  <!-- PLAY / STOP -->
   <div class="main-actions">
     <button class="btn-play-big" id="btnPlay" onclick="togglePlay()">▶ Play</button>
     <button class="btn-stop-big" onclick="stopAll()">■ Stop</button>
   </div>
 
+  <!-- FINALE -->
   <button class="btn-finale" id="btnEnding" onclick="armEnding()" disabled>🎬 Segnala finale ad Alessandro</button>
 
+  <!-- RANDOM -->
   <button class="btn-random" id="btnRandom" onclick="doFullRandom()">🎲 RANDOMIZZA TUTTO — nuova progressione, stile e scena</button>
 
+  <!-- TEMPO -->
   <div class="tempo-strip">
     <span class="tempo-lbl">BPM</span>
     <button class="tempo-adj" onclick="setTempo(Math.max(60,bpm-5));document.getElementById('tempoSlider').value=bpm">−</button>
@@ -103,10 +108,10 @@
     <input type="range" id="tempoSlider" min="70" max="160" value="120" oninput="setTempo(+this.value)" style="display:none">
   </div>
 
-  <script src="js/db-music.js"></script>
-  <script src="js/db-scenes.js"></script>
-  <script src="js/sampler.js"></script>
-  <script src="js/audio-engine.js"></script>
-  <script src="js/ui-manager.js"></script>
+  <!-- Scripts -->
+  <script src="js/db-music.js?v=0.4"></script>
+  <script src="js/db-scenes.js?v=0.4"></script>
+  <script src="js/audio-engine.js?v=0.4"></script>
+  <script src="js/ui-manager.js?v=0.4"></script>
 </body>
 </html>

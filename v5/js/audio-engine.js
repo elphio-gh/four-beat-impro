@@ -6,16 +6,49 @@
 let ctx = null, masterGain, dryGain, revGain, revNode;
 let nextBeatTime = 0, schedTimer = null;
 const LOOK_AHEAD = 0.14, TICK_MS = 25;
+const IS_FIREFOX_MOBILE = /Firefox/i.test(navigator.userAgent) && /Android|Mobile|Tablet/i.test(navigator.userAgent);
+
+const MIX_PROFILE = IS_FIREFOX_MOBILE ? {
+  master: 0.92,
+  dry: 0.7,
+  reverb: 0.18,
+  compressor: {
+    threshold: -22,
+    knee: 10,
+    ratio: 6,
+    attack: 0.0015,
+    release: 0.18
+  },
+  metronomeLead: 3.8,
+  metronomeGhost: 2.1
+} : {
+  master: 1.0,
+  dry: 0.76,
+  reverb: 0.2,
+  compressor: {
+    threshold: -19,
+    knee: 9,
+    ratio: 5,
+    attack: 0.002,
+    release: 0.15
+  },
+  metronomeLead: 4.8,
+  metronomeGhost: 2.7
+};
 
 // AUDIO INIT
 function initAudio() {
   if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = ctx.createGain(); masterGain.gain.value = 1.35; // Volume generale aumentato
-  dryGain = ctx.createGain(); dryGain.gain.value = 0.8;
-  revGain = ctx.createGain(); revGain.gain.value = 0.25;
+  masterGain = ctx.createGain(); masterGain.gain.value = MIX_PROFILE.master;
+  dryGain = ctx.createGain(); dryGain.gain.value = MIX_PROFILE.dry;
+  revGain = ctx.createGain(); revGain.gain.value = MIX_PROFILE.reverb;
   const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -14; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.12;
+  comp.threshold.value = MIX_PROFILE.compressor.threshold;
+  comp.knee.value = MIX_PROFILE.compressor.knee;
+  comp.ratio.value = MIX_PROFILE.compressor.ratio;
+  comp.attack.value = MIX_PROFILE.compressor.attack;
+  comp.release.value = MIX_PROFILE.compressor.release;
   revNode = buildReverb();
   dryGain.connect(comp); revNode.connect(revGain); revGain.connect(comp); comp.connect(masterGain); masterGain.connect(ctx.destination);
 }
@@ -35,7 +68,7 @@ function playNote(midi, t0, dur, vol, sound) {
 
 function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
   if (withBass) playNote(notes[0] - 12, t0, dur, 0.22 * volScale, sound);
-  notes.forEach((n, i) => playNote(n, t0, dur, (i === 0 ? 0.70 : 0.60) * volScale, sound));
+  notes.forEach((n, i) => playNote(n, t0, dur, (i === 0 ? 0.54 : 0.46) * volScale, sound));
 }
 
 // PERCUSSION
@@ -47,9 +80,9 @@ function hihat(t, vol = 0.12, open = false) {
 }
 function rim(t) { Sampler.playDrum('rim', 76, t, 0.05, 0.3); }
 function metroClick(t, isOne) {
-  const leadVol = isOne ? 6.5 : 4.5;
+  const leadVol = isOne ? MIX_PROFILE.metronomeLead : MIX_PROFILE.metronomeGhost;
   Sampler.playDrum('rim', 76, t, 0.04, leadVol);
-  if (isOne) Sampler.playDrum('rim', 76, t + 0.012, 0.03, 3.5);
+  if (isOne) Sampler.playDrum('rim', 76, t + 0.012, 0.03, MIX_PROFILE.metronomeGhost);
 }
 function clickSound(t, vol = 0.65) {
   Sampler.playDrum('rim', 76, t, 0.04, vol * 3.2);
@@ -143,7 +176,7 @@ function schedEnding(startT) {
   masterGain.gain.cancelScheduledValues(startT - 0.04);
   masterGain.gain.setValueAtTime(masterGain.gain.value, startT - 0.04);
   masterGain.gain.linearRampToValueAtTime(0, startT - 0.001);
-  masterGain.gain.setValueAtTime(0.8, startT);
+  masterGain.gain.setValueAtTime(Math.min(0.8, MIX_PROFILE.master), startT);
   playChordAt(notes, startT, spb * 0.9, theme.sound, 1.0, true);
   kick(startT);
   schedUI(() => { highlightChord(0); highlightBeat(0); }, startT);
