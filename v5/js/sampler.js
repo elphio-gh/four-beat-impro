@@ -144,18 +144,18 @@ const Sampler = {
     source.buffer = buffer;
 
     const gain = ctx.createGain();
-    const safeDur = Math.max(duration, 0.05);
     const peakVol = volume * 3.5;
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + safeDur);
+    // Le percussioni reali (SoundFont) decadono naturalmente. Diamo 1 secondo abbondante senza tagli netti.
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
 
     source.connect(gain);
     gain.connect(dryGain);
     gain.connect(revNode);
 
     source.start(time);
-    source.stop(time + safeDur + 0.1);
+    source.stop(time + 1.5);
     return true;
   },
 

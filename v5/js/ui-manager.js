@@ -24,7 +24,7 @@ function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', 
 function assignRhythms() { for (let i = 0; i < 4; i++) chordRhythms[i] = Math.floor(Math.random() * RHYTHM_PATTERNS.length); }
 function assignBassPatterns() {
   for (let i = 0; i < 4; i++) bassPatterns[i] = Math.floor(Math.random() * BASS_PATTERNS.length);
-  bassEngine = Math.floor(Math.random() * BASS_ENGINES.length);
+  bassEngine = 0;
   refreshBassDisplay();
 }
 
@@ -52,7 +52,11 @@ function doCountIn(onDone) {
   }, startT + 4 * spb);
 }
 
-function schedUI(fn, audioTime) { const d = (audioTime - ctx.currentTime) * 1000; setTimeout(fn, Math.max(0, d)); }
+let countInTimers = [];
+function schedUI(fn, audioTime) { 
+  const d = (audioTime - ctx.currentTime) * 1000; 
+  countInTimers.push(setTimeout(fn, Math.max(0, d))); 
+}
 
 // UI UPDATES
 function highlightChord(idx) {
@@ -200,10 +204,8 @@ function randomMainInstrument() {
 
 // Cambia solo il motore basso, indipendente dallo strumento principale
 function randomBassInstrument() {
-  const cur = bassEngine;
-  let next = cur;
-  while (next === cur && BASS_ENGINES.length > 1) next = Math.floor(Math.random() * BASS_ENGINES.length);
-  bassEngine = next;
+  // C'è solo un basso HD SoundFont ora
+  bassEngine = 0;
   refreshBassDisplay();
 }
 
@@ -287,6 +289,7 @@ async function startPlay() {
 
 function stopAll(silent = false) {
   clearTimeout(schedTimer); schedTimer = null;
+  if (countInTimers) { countInTimers.forEach(t => clearTimeout(t)); countInTimers = []; }
   isPlaying = false; isCountingIn = false; endingArmed = false; endingDone = false;
   resetStruttura();
   for (let i = 1; i <= 4; i++) document.getElementById('cb' + i).classList.remove('active', 'count-in-active');
@@ -306,7 +309,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const i = Math.floor(Math.random() * THEMES.length);
   themeIdx = i;
   THEMES[i].sound = 'grandpiano';
-  bassEngine = Math.floor(Math.random() * BASS_ENGINES.length);
+  bassEngine = 0;
   bpm = Math.round(Math.max(85, Math.min(115, 100 + (Math.random() - 0.5) * 30)));
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
