@@ -4,20 +4,34 @@
  */
 
 // STATE
-let isPlaying = false, isCountingIn = false, endingArmed = false, endingDone = false;
+let isPlaying = false, isCountingIn = false, endingArmed = false, endingDone = false, hasStartedPlayback = false;
 let bpm = 120, themeIdx = 0, totalBeats = 0;
 let metronomeOn = false;
 let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
 
-// Lista dei bassi HD SoundFont disponibili
-const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
+const MAIN_INSTRUMENT_LIST = ['grandpiano', 'jazzpiano', 'elecpiano', 'organ', 'accordion'];
+const MAIN_INSTRUMENT_WEIGHTED = ['grandpiano', 'grandpiano', 'grandpiano', 'jazzpiano', 'elecpiano', 'organ', 'accordion'];
+const MAIN_SOUND_ALIASES = {
+  pipeorgan: 'organ',
+  strings: 'organ',
+  brass: 'organ',
+  synthpad: 'organ',
+  nylonguitar: 'accordion',
+  distguitar: 'elecpiano',
+  steelguitar: 'elecpiano',
+  vibraphone: 'elecpiano',
+  marimba: 'elecpiano',
+  honkytonk: 'grandpiano',
+  harpsichord: 'grandpiano'
+};
+
+// Lista bassi mobile-first disponibili
+const BASS_LIST = ['bass_electric', 'bass_acoustic'];
 const BASS_DISPLAY_NAMES = {
   'bass_electric': 'Electric Bass',
-  'bass_acoustic': 'Acoustic Bass',
-  'bass_fretless': 'Fretless Bass',
-  'bass_synth': 'Synth Bass'
+  'bass_acoustic': 'Acoustic Bass'
 };
 // Strumento basso corrente (usato da audio-engine.js tramite window.currentBassSound)
 window.currentBassSound = 'bass_electric';
@@ -31,6 +45,8 @@ let targets = { strofa: 4, rit: 4 };
 
 function bNotes(r, t) { return CHORD_INT[t].map(i => r + i); }
 function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', min7: 'm7', sus4: 'sus4', sus2: 'sus2', maj6: '6', dim7: '°7', aug: '+', min6: 'm6' }; return NOTES[r % 12] + (s[t] ?? ''); }
+function normalizeMainSound(sound) { return MAIN_INSTRUMENT_LIST.includes(sound) ? sound : (MAIN_SOUND_ALIASES[sound] || 'grandpiano'); }
+function normalizeBassSound(sound) { return BASS_LIST.includes(sound) ? sound : 'bass_electric'; }
 
 function assignRhythms() { for (let i = 0; i < 4; i++) chordRhythms[i] = Math.floor(Math.random() * RHYTHM_PATTERNS.length); }
 function assignBassPatterns() {
@@ -107,7 +123,10 @@ window.onInstrumentLoaded = function(name) {
 };
 
 function selectTheme(i, keepLoc = false) {
-  themeIdx = i; bpm = THEMES[i].tempo;
+  themeIdx = i;
+  THEMES[i].sound = normalizeMainSound(THEMES[i].sound);
+  window.currentBassSound = normalizeBassSound(window.currentBassSound);
+  bpm = THEMES[i].tempo;
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
   
@@ -141,11 +160,7 @@ function doFullRandom() {
   btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
   if (isPlaying || isCountingIn) stopAll(true);
   const i = Math.floor(Math.random() * THEMES.length);
-  // L'override del suono DEVE avvenire PRIMA di selectTheme,
-  // altrimenti il Sampler carica lo strumento originale del tema
-  // mentre l'app poi usa grandpiano (che non e' stato caricato)
   THEMES[i].sound = 'grandpiano';
-  // Randomizza anche il basso fra i 4 disponibili
   window.currentBassSound = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
   selectTheme(i, false);
   refreshBassDisplay();
@@ -207,9 +222,9 @@ function toggleSezioneMusicale() {
 }
 
 // Cambia solo lo strumento principale (accordi), indipendente dal basso
-// Mostra "caricamento..." durante il download del soundfont HD
+// Mostra "caricamento..." durante il download del pack audio leggero
 async function randomMainInstrument() {
-  const cur = THEMES[themeIdx].sound;
+  const cur = normalizeMainSound(THEMES[themeIdx].sound);
   let next = cur;
   while (next === cur) next = randomWeightedSound();
   THEMES[themeIdx].sound = next;
@@ -226,7 +241,7 @@ async function randomMainInstrument() {
 }
 
 // Cambia solo il basso, indipendente dallo strumento principale
-// Mostra "caricamento..." durante il download del soundfont HD
+// Mostra "caricamento..." durante il download del pack audio leggero
 async function randomBassInstrument() {
   const cur = window.currentBassSound;
   let next = cur;
@@ -251,8 +266,7 @@ function randomInstrument() {
 }
 
 function randomWeightedSound() {
-  if (Math.random() < 0.85) return PIANO_SOUNDS[Math.floor(Math.random() * PIANO_SOUNDS.length)];
-  return SOUND_LIST[Math.floor(Math.random() * SOUND_LIST.length)];
+  return MAIN_INSTRUMENT_WEIGHTED[Math.floor(Math.random() * MAIN_INSTRUMENT_WEIGHTED.length)];
 }
 
 
@@ -279,7 +293,7 @@ async function togglePlay() {
     document.getElementById('btnPlay').classList.remove('on');
     setStatus('⏸ in pausa', '');
   } else {
-    if (ctx && ctx.state === 'suspended') {
+    if (ctx && ctx.state === 'suspended' && hasStartedPlayback) {
       await ctx.resume();
       isPlaying = true;
       document.getElementById('btnPlay').textContent = '⏸ Pausa';
@@ -287,7 +301,9 @@ async function togglePlay() {
       nextBeatTime = ctx.currentTime + 0.05;
       schedTimer = setTimeout(scheduler, TICK_MS);
       setStatus('▶ ripresa', '');
-    } else { startPlay(); }
+    } else {
+      await startPlay();
+    }
   }
 }
 
@@ -296,14 +312,9 @@ async function startPlay() {
   if (ctx.state === 'suspended') await ctx.resume();
   
   document.getElementById('btnPlay').disabled = true;
-  setStatus('caricamento strumenti HD in corso...', '');
+  setStatus('caricamento set audio...', '');
 
-  // Avvia il caricamento HD subito dopo l'attivazione dell'AudioContext
-  await Promise.all([
-    Sampler.loadInstrument(THEMES[themeIdx].sound),
-    Sampler.loadInstrument(window.currentBassSound),
-    Sampler.loadDrums()
-  ]);
+  await Sampler.loadStartupPreset(THEMES[themeIdx].sound, window.currentBassSound);
 
   setStatus('1 ... 2 ... 3 ... 4 ...', '');
   resetStruttura();
@@ -311,7 +322,7 @@ async function startPlay() {
   assignBassPatterns();
   
   doCountIn((musicStartT) => {
-    isPlaying = true; endingArmed = false; endingDone = false;
+    isPlaying = true; hasStartedPlayback = true; endingArmed = false; endingDone = false;
     totalBeats = 0; nextBeatTime = musicStartT;
     document.getElementById('btnPlay').textContent = '⏸ Pausa';
     document.getElementById('btnPlay').classList.add('on');
@@ -325,7 +336,7 @@ async function startPlay() {
 function stopAll(silent = false) {
   clearTimeout(schedTimer); schedTimer = null;
   if (countInTimers) { countInTimers.forEach(t => clearTimeout(t)); countInTimers = []; }
-  isPlaying = false; isCountingIn = false; endingArmed = false; endingDone = false;
+  isPlaying = false; isCountingIn = false; hasStartedPlayback = false; endingArmed = false; endingDone = false;
   resetStruttura();
   for (let i = 1; i <= 4; i++) document.getElementById('cb' + i).classList.remove('active', 'count-in-active');
   document.getElementById('btnPlay').textContent = '▶ Play';
