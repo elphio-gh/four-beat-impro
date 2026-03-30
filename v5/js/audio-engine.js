@@ -301,26 +301,16 @@ function scheduleBeat(beat, t) {
   const sectionEnergy = currentSectionEnergy();
   perc(bInC, t, theme.perc);
   if (metronomeOn) metroClick(t, bInC === 0);
-  if (bInC === 0) {
-    const barPlan = getBarPlan(theme, cIdx);
-    const primaryEvent = barPlan.events[0];
-    const primaryChord = theme.ch[primaryEvent.chordIndex];
-    if (!endingDone) {
-      const bassEvents = (barPlan.bass === 'pedal' && barPlan.events.length > 1) ? [primaryEvent] : barPlan.events;
-      bassEvents.forEach((event, eventIdx) => {
-        const chord = theme.ch[event.chordIndex];
-        playBass(chord.r + 12, t + event.offset * spb, spb, bassPatterns[cIdx], event.span, sectionEnergy * (eventIdx === 0 ? 1 : 0.92));
-      });
-    }
-    if (!endingDone) {
-      barPlan.events.forEach((event, eventIdx) => {
-        const chord = theme.ch[event.chordIndex];
-        const notes = bNotes(chord.r + 12, chord.t);
-        playChordSegment(notes, t + event.offset * spb, spb, event.span, theme.sound, chordRhythms[cIdx], sectionEnergy * (eventIdx === 0 ? 1 : 0.94));
-        schedUI(() => highlightChord(event.chordIndex), t + event.offset * spb);
-      });
-    }
+  const barPlan = getBarPlan(theme, cIdx);
+  const primaryEvent = barPlan.events[0];
+  const primaryChord = theme.ch[primaryEvent.chordIndex];
+  if (bInC === 0 && !endingDone) {
+    playBass(primaryChord.r + 12, t, spb, bassPatterns[cIdx], 4, sectionEnergy);
     schedUI(() => highlightChord(primaryEvent.chordIndex), t);
+  }
+  if (!endingDone) {
+    const notes = bNotes(primaryChord.r + 12, primaryChord.t);
+    playChordAt(notes, t, spb * 0.86, theme.sound, sectionEnergy * (bInC === 0 ? 1.0 : 0.9), false);
   }
   schedUI(() => highlightBeat(bInC), t);
   if (beat === 0) schedUI(() => { introGiro = 1; setStruttura('intro'); }, t);
