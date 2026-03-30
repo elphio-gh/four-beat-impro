@@ -95,7 +95,7 @@ const Sampler = {
   },
 
   assetUrl(path) {
-    const version = window.APP_VERSION || '0.5c';
+    const version = window.APP_VERSION || '0.5d';
     return `${this.baseUrl}${path}?v=${encodeURIComponent(version)}`;
   },
 

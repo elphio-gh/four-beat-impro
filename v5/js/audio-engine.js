@@ -47,11 +47,12 @@ function hihat(t, vol = 0.12, open = false) {
 }
 function rim(t) { Sampler.playDrum('rim', 76, t, 0.05, 0.3); }
 function metroClick(t, isOne) {
-  const vol = isOne ? 0.9 : 0.5;
-  Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5);
+  const leadVol = isOne ? 6.5 : 4.5;
+  Sampler.playDrum('rim', 76, t, 0.04, leadVol);
+  if (isOne) Sampler.playDrum('rim', 76, t + 0.012, 0.03, 3.5);
 }
 function clickSound(t, vol = 0.65) {
-  Sampler.playDrum('rim', 76, t, 0.05, vol * 1.5);
+  Sampler.playDrum('rim', 76, t, 0.04, vol * 3.2);
 }
 
 function perc(beat, t, type) {
@@ -76,7 +77,7 @@ function playBass(rootMidi, t0, spb, patternIdx) {
     const hitT = t0 + offset * spb;
     const dur = spb * 0.55;
 
-    Sampler.playNote(window.currentBassSound || 'bass_electric', note, hitT, dur, 0.15);
+    Sampler.playNote(window.currentBassSound || 'bass_electric', note, hitT, dur, 0.24);
   });
 }
 
