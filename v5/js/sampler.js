@@ -48,6 +48,7 @@ const Sampler = {
    */
   async loadInstrument(name) {
     const internalName = this.map[name] || name;
+    const assetVersion = window.APP_VERSION || '0.5a';
 
     // Evita caricamenti duplicati: se caricato, torna subito; se in caricamento, torna la Promise
     if (this.instruments[name]) return Promise.resolve();
@@ -64,7 +65,9 @@ const Sampler = {
     const loadPromise = (async () => {
       try {
         // STEP 1: Scarica il file .js dal CDN (contiene i campioni come data URIs base64)
-        const response = await fetch(`${this.baseUrl}${internalName}-ogg.js`);
+        const response = await fetch(`${this.baseUrl}${internalName}-ogg.js?v=${encodeURIComponent(assetVersion)}`, {
+          cache: 'no-store'
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
         const scriptText = await response.text();
 
