@@ -27,6 +27,27 @@ const MAIN_SOUND_ALIASES = {
   harpsichord: 'grandpiano'
 };
 
+const STYLE_LABELS = {
+  swing: 'Swing',
+  rock: 'Rock',
+  funk: 'Funk',
+  bossa: 'Bossa',
+  march: 'Marcia',
+  latin: 'Latin',
+  gospel: 'Gospel',
+  tango: 'Tango'
+};
+
+const MOOD_LABELS = {
+  teatro: 'Teatrale',
+  magico: 'Magico',
+  sacro: 'Sacrale',
+  locale: 'Notturno',
+  storico: 'Epico',
+  esotico: 'Esotico',
+  fantascientifico: 'Sci-fi'
+};
+
 // Lista bassi mobile-first disponibili
 const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
 const BASS_DISPLAY_NAMES = {
@@ -66,6 +87,18 @@ function assignBassPatterns() {
 function refreshBassDisplay() {
   const el = document.getElementById('instrBassName');
   if (el) el.innerHTML = BASS_DISPLAY_NAMES[window.currentBassSound] || window.currentBassSound;
+}
+
+function getThemeSound(theme = THEMES[themeIdx]) {
+  return normalizeMainSound(theme?.sound || 'grandpiano');
+}
+
+function refreshThemeMeta() {
+  const theme = THEMES[themeIdx];
+  const styleEl = document.getElementById('styleText');
+  const moodEl = document.getElementById('moodText');
+  if (styleEl) styleEl.textContent = STYLE_LABELS[theme.perc] || 'Libero';
+  if (moodEl) moodEl.textContent = MOOD_LABELS[theme.lg] || theme.lg || 'Aperto';
 }
 
 // COUNT-IN
@@ -108,9 +141,10 @@ function highlightBeat(b) {
 
 function refreshChordDisplay() {
   const t = THEMES[themeIdx];
+  const sound = getThemeSound(t);
   document.getElementById('chordDisplay').className = 'chord-display';
 
-  const isHD = Sampler.instruments[t.sound];
+  const isHD = Sampler.instruments[sound];
 
   for (let i = 0; i < 4; i++) {
     const card = document.getElementById('cc' + i);
@@ -120,8 +154,9 @@ function refreshChordDisplay() {
     document.getElementById('cname' + i).textContent = cLabel(cd.r, cd.t);
   }
   const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎸', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
-  document.getElementById('instrIcon').textContent = icons[t.sound] || '🎹';
-  document.getElementById('instrName').innerHTML = (SOUND_NAMES[t.sound] || t.sound);
+  document.getElementById('instrIcon').textContent = icons[sound] || '🎹';
+  document.getElementById('instrName').innerHTML = (SOUND_NAMES[sound] || sound);
+  refreshThemeMeta();
 }
 
 // Callback quando uno strumento HD finisce di caricare
@@ -132,7 +167,7 @@ window.onInstrumentLoaded = function(name) {
 
 function selectTheme(i, keepLoc = false) {
   themeIdx = i;
-  THEMES[i].sound = normalizeMainSound(THEMES[i].sound);
+  THEMES[i].sound = getThemeSound(THEMES[i]);
   window.currentBassSound = normalizeBassSound(window.currentBassSound);
   bpm = THEMES[i].tempo;
   document.getElementById('tempoSlider').value = bpm;
@@ -232,7 +267,7 @@ function toggleSezioneMusicale() {
 // Cambia solo lo strumento principale (accordi), indipendente dal basso
 // Mostra "caricamento..." durante il download del pack audio leggero
 async function randomMainInstrument() {
-  const cur = normalizeMainSound(THEMES[themeIdx].sound);
+  const cur = getThemeSound(THEMES[themeIdx]);
   const next = nextInList(MAIN_INSTRUMENT_LIST, cur);
   THEMES[themeIdx].sound = next;
 
@@ -272,7 +307,7 @@ function randomInstrument() {
 }
 
 function randomWeightedSound() {
-  return nextInList(MAIN_INSTRUMENT_LIST, normalizeMainSound(THEMES[themeIdx].sound));
+  return nextInList(MAIN_INSTRUMENT_LIST, getThemeSound(THEMES[themeIdx]));
 }
 
 

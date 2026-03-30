@@ -214,6 +214,41 @@ body.sec-rit    { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); --sec-card: 
 .location-text.flash { animation: flash .35s ease; }
 @keyframes flash { 0%,100%{opacity:1} 40%{opacity:.1} }
 
+/* ── STYLE / MOOD ── */
+.theme-meta-card {
+  margin: 6px 14px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(24,24,28,.72);
+  border: 1px solid rgba(240,232,216,.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.theme-meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.theme-meta-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.theme-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ddd1b2;
+}
+.theme-meta-sep {
+  color: var(--dim);
+  font-size: 12px;
+}
+
 /* ── MAIN ACTION BUTTONS ── */
 .main-actions {
   display: grid; grid-template-columns: 1fr 1fr;

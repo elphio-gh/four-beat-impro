@@ -11,6 +11,27 @@ let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
 
+const STYLE_LABELS = {
+  swing: 'Swing',
+  rock: 'Rock',
+  funk: 'Funk',
+  bossa: 'Bossa',
+  march: 'Marcia',
+  latin: 'Latin',
+  gospel: 'Gospel',
+  tango: 'Tango'
+};
+
+const MOOD_LABELS = {
+  teatro: 'Teatrale',
+  magico: 'Magico',
+  sacro: 'Sacrale',
+  locale: 'Notturno',
+  storico: 'Epico',
+  esotico: 'Esotico',
+  fantascientifico: 'Sci-fi'
+};
+
 let sezione = 'none';
 let sezCounter = { strofa: 0, rit: 0 };
 let introGiro = 0;
@@ -29,6 +50,18 @@ function assignBassPatterns() {
 function refreshBassDisplay() {
   const el = document.getElementById('instrBass');
   if (el) el.textContent = '🎸 ' + (BASS_NAMES[bassEngine] || '—');
+}
+
+function getThemeSound(theme = THEMES[themeIdx]) {
+  return theme?.sound || 'grandpiano';
+}
+
+function refreshThemeMeta() {
+  const theme = THEMES[themeIdx];
+  const styleEl = document.getElementById('styleText');
+  const moodEl = document.getElementById('moodText');
+  if (styleEl) styleEl.textContent = STYLE_LABELS[theme.perc] || 'Libero';
+  if (moodEl) moodEl.textContent = MOOD_LABELS[theme.lg] || theme.lg || 'Aperto';
 }
 
 // COUNT-IN
@@ -67,6 +100,7 @@ function highlightBeat(b) {
 
 function refreshChordDisplay() {
   const t = THEMES[themeIdx];
+  const sound = getThemeSound(t);
   document.getElementById('chordDisplay').className = 'chord-display';
   for (let i = 0; i < 4; i++) {
     const card = document.getElementById('cc' + i);
@@ -76,12 +110,15 @@ function refreshChordDisplay() {
     document.getElementById('cname' + i).textContent = cLabel(cd.r, cd.t);
   }
   const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎸', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
-  document.getElementById('instrIcon').textContent = icons[t.sound] || '🎹';
-  document.getElementById('instrName').textContent = SOUND_NAMES[t.sound] || t.sound;
+  document.getElementById('instrIcon').textContent = icons[sound] || '🎹';
+  document.getElementById('instrName').textContent = SOUND_NAMES[sound] || sound;
+  refreshThemeMeta();
 }
 
 function selectTheme(i, keepLoc = false) {
-  themeIdx = i; bpm = THEMES[i].tempo;
+  themeIdx = i;
+  THEMES[i].sound = THEMES[i].sound || 'grandpiano';
+  bpm = THEMES[i].tempo;
   document.getElementById('tempoSlider').value = bpm;
   document.getElementById('tempoVal').textContent = bpm;
   refreshChordDisplay();
@@ -168,7 +205,7 @@ function toggleSezioneMusicale() {
 }
 
 function randomInstrument() {
-  const cur = THEMES[themeIdx].sound;
+  const cur = getThemeSound(THEMES[themeIdx]);
   let next = cur;
   while (next === cur) next = randomWeightedSound();
   THEMES[themeIdx].sound = next;
