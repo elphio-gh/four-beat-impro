@@ -1,0 +1,215 @@
+/**
+ * SAMPLER ENGINE (v3 - Pipeline corretto e robusto)
+ * Gestisce il caricamento e la riproduzione di campioni reali da SoundFont FluidR3.
+ * Carica i suoni on-demand da CDN per mantenere l'app leggera.
+ * Ogni strumento viene scaricato come file .js contenente campioni base64-encoded,
+ * quindi decodificato in AudioBuffer per la riproduzione tramite Web Audio API.
+ */
+
+const Sampler = {
+  instruments: {}, // { nomeStrumento: { nomeNota: AudioBuffer } }
+  loading: {},     // { nomeStrumento: true } durante il caricamento
+  baseUrl: window.location.protocol === 'file:'
+    ? 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/'
+    : 'soundfonts/',
+
+  // Mappa nomi interni dell'app verso nomi FluidR3 del CDN
+  map: {
+    'grandpiano': 'acoustic_grand_piano',
+    'jazzpiano': 'bright_acoustic_piano',
+    'elecpiano': 'electric_piano_1',
+    'organ': 'percussive_organ',
+    'pipeorgan': 'church_organ',
+    'accordion': 'accordion',
+    'strings': 'string_ensemble_1',
+    'brass': 'brass_section',
+    'nylonguitar': 'acoustic_guitar_nylon',
+    'distguitar': 'distortion_guitar',
+    'steelguitar': 'acoustic_guitar_steel',
+    'honkytonk': 'honkytonk_piano',
+    'synthpad': 'synth_pad_1_new_age',
+    'vibraphone': 'vibraphone',
+    'harpsichord': 'harpsichord',
+    'marimba': 'marimba',
+    'bass': 'electric_bass_finger',
+    'kick': 'taiko_drum',
+    'snare': 'synth_drum',
+    'hihat': 'agogo',
+    'rim': 'woodblock'
+  },
+
+  /**
+   * Carica uno strumento HD dalla CDN se non gia' presente.
+   * La funzione e' asincrona: il caricamento avviene in background
+   * e la riproduzione HD si attiva automaticamente appena pronto.
+   */
+  async loadInstrument(name) {
+    const internalName = this.map[name] || name;
+
+    // Evita caricamenti duplicati
+    if (this.instruments[name] || this.loading[name]) return;
+
+    // L'AudioContext deve esistere per la decodifica dei campioni
+    if (!ctx) {
+      console.warn(`[Sampler] AudioContext non inizializzato. Caricamento di "${name}" rimandato.`);
+      return;
+    }
+
+    console.log(`[Sampler] Avvio caricamento HD: ${name} (CDN: ${internalName})...`);
+    this.loading[name] = true;
+
+    try {
+      // STEP 1: Scarica il file .js dal CDN (contiene i campioni come data URIs base64)
+      const response = await fetch(`${this.baseUrl}${internalName}-ogg.js`);
+      if (!response.ok) throw new Error(`HTTP ${response.status} per ${internalName}`);
+      const scriptText = await response.text();
+
+      // STEP 2: Esegue lo script nel contesto globale per popolare window.MIDI.Soundfont
+      // I file CDN dichiarano "var MIDI = ..." che con new Function resterebbe locale
+      // e non popolerebbe mai l'oggetto globale. Serve eval nel contesto globale.
+      window.eval(scriptText);
+
+      // STEP 3: Estrae i dati audio dall'oggetto globale
+      const soundData = window.MIDI.Soundfont[internalName];
+      if (!soundData) throw new Error(`Dati non trovati per "${internalName}" dopo eval`);
+
+      const noteKeys = Object.keys(soundData);
+      console.log(`[Sampler] ${name}: trovate ${noteKeys.length} note, avvio decodifica...`);
+
+      // STEP 4: Decodifica ogni campione base64 in AudioBuffer
+      const buffers = {};
+      let decoded = 0, failed = 0;
+
+      const promises = noteKeys.map(async (note) => {
+        try {
+          const base64Data = soundData[note].split(',')[1];
+          if (!base64Data) { failed++; return; }
+
+          // Converte base64 in ArrayBuffer binario
+          const raw = atob(base64Data);
+          const arr = new Uint8Array(raw.length);
+          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+          // .slice(0) crea una copia pulita del buffer, necessaria perche'
+          // decodeAudioData "detaches" (trasferisce) il buffer originale
+          const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
+          buffers[note] = audioBuffer;
+          decoded++;
+        } catch (e) {
+          failed++;
+        }
+      });
+
+      await Promise.all(promises);
+
+      if (decoded === 0) {
+        throw new Error(`Nessun campione decodificato (${failed} falliti) — formato audio non supportato?`);
+      }
+
+      this.instruments[name] = buffers;
+      this.loading[name] = false;
+      console.log(`[Sampler] HD Caricato: ${name} — ${decoded} note OK, ${failed} fallite`);
+
+      // Pulizia memoria globale: i dati raw non servono piu' (i buffer decodificati sono in this.instruments)
+      delete window.MIDI.Soundfont[internalName];
+
+      // Notifica la UI per aggiornare i badge [HD]
+      if (window.onInstrumentLoaded) window.onInstrumentLoaded(name);
+
+    } catch (err) {
+      console.error(`[Sampler] Errore caricamento "${name}":`, err);
+      this.loading[name] = false;
+    }
+  },
+
+  /**
+   * Carica tutti gli strumenti percussivi HD.
+   */
+  async loadDrums() {
+    await Promise.all(['kick', 'snare', 'hihat', 'rim'].map(d => this.loadInstrument(d)));
+  },
+
+  /**
+   * Riproduce uno strumento percussivo HD con un inviluppo molto rapido.
+   */
+  playDrum(name, midi, time, duration, volume) {
+    const inst = this.instruments[name];
+    if (!inst) return false;
+
+    const noteName = this.midiToName(midi);
+    const buffer = inst[noteName];
+    if (!buffer) return false;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const gain = ctx.createGain();
+    const safeDur = Math.max(duration, 0.05);
+    const peakVol = volume * 3.5;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(peakVol, time + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + safeDur);
+
+    source.connect(gain);
+    gain.connect(dryGain);
+    gain.connect(revNode);
+
+    source.start(time);
+    source.stop(time + safeDur + 0.1);
+    return true;
+  },
+
+  /**
+   * Riproduce una nota usando i campioni HD.
+   * Ritorna true se il campione e' stato trovato e riprodotto,
+   * false se lo strumento non e' ancora caricato (fallback a synth).
+   */
+  playNote(name, midi, time, duration, volume) {
+    const inst = this.instruments[name];
+    if (!inst) return false;
+
+    const noteName = this.midiToName(midi);
+    const buffer = inst[noteName];
+    if (!buffer) return false;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    // Inviluppo ADSR per evitare click e rendere il suono naturale
+    // Moltiplicatore 3.0: i campioni SoundFont hanno ampiezza intrinseca piu' bassa
+    // rispetto alla sintesi (che somma piu' oscillatori/armoniche), serve compensare
+    const gain = ctx.createGain();
+    const safeDur = Math.max(duration, 0.1);
+    const peakVol = volume * 3.0;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(peakVol, time + 0.01);
+    gain.gain.setValueAtTime(peakVol, time + safeDur - 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + safeDur + 0.4);
+
+    // Routing: stesso percorso del synth (dryGain + riverbero)
+    source.connect(gain);
+    gain.connect(dryGain);
+    gain.connect(revNode);
+
+    source.start(time);
+    source.stop(time + safeDur + 0.5);
+    return true;
+  },
+
+  /**
+   * Converte un numero MIDI nel nome nota usato dai file FluidR3.
+   * Es: MIDI 60 -> "C4", MIDI 69 -> "A4", MIDI 61 -> "Db4"
+   */
+  midiToName(midi) {
+    const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const name = notes[midi % 12];
+    const oct = Math.floor(midi / 12) - 1;
+    return `${name}${oct}`;
+  }
+};
+
+// Inizializza namespace globale richiesto dai file .js del soundfont CDN
+// Questi file fanno: if (typeof(MIDI) === 'undefined') var MIDI = {};
+// Definendolo prima evitiamo che creino un oggetto vuoto sovrascrivendo i dati
+window.MIDI = window.MIDI || {};
+window.MIDI.Soundfont = window.MIDI.Soundfont || {};

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test SoundFont — Diagnostica</title>
+  <style>
+    /* Styling minimale ma leggibile per pagina diagnostica */
+    :root {
+      --bg: #0e1117;
+      --card: #161b22;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --text: #c9d1d9;
+      --dim: #8b949e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { color: var(--blue); margin-bottom: 6px; font-size: 1.6em; }
+    .subtitle { color: var(--dim); margin-bottom: 24px; font-size: 0.9em; }
+    .section {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid #21262d;
+    }
+    .section h2 { font-size: 1.1em; margin-bottom: 12px; color: var(--blue); }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.95em;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    button:hover { transform: scale(1.03); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--blue); color: #000; }
+    .btn-play { background: var(--green); color: #000; }
+    .btn-play:disabled { background: #2d4a32; }
+    .btn-synth { background: var(--yellow); color: #000; }
+
+    select {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: var(--text);
+      font-size: 0.95em;
+    }
+
+    /* Log di diagnostica */
+    #log {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.82em;
+      line-height: 1.6;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-ok { color: var(--green); }
+    .log-err { color: var(--red); }
+    .log-warn { color: var(--yellow); }
+    .log-info { color: var(--dim); }
+    .log-step { color: var(--blue); font-weight: bold; }
+
+    /* Piano visuale per test note singole */
+    .piano-row {
+      display: flex;
+      gap: 3px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .key-btn {
+      padding: 8px 6px;
+      font-size: 0.72em;
+      border-radius: 5px;
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: var(--text);
+      cursor: pointer;
+      min-width: 38px;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .key-btn:hover { background: var(--blue); color: #000; }
+    .key-btn.has-buffer { border-color: var(--green); background: #1a2e1a; }
+    .key-btn.no-buffer { border-color: var(--red); opacity: 0.4; }
+    .key-btn.playing { background: var(--green); color: #000; }
+
+    /* Indicatore di stato globale */
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.78em;
+      font-weight: 700;
+      margin-left: 10px;
+    }
+    .status-idle { background: #21262d; color: var(--dim); }
+    .status-loading { background: #2d3a22; color: var(--yellow); }
+    .status-ok { background: #1a3a1a; color: var(--green); }
+    .status-fail { background: #3a1a1a; color: var(--red); }
+  </style>
+</head>
+<body>
+  <h1>🔬 Test SoundFont <span class="status-badge status-idle" id="globalStatus">idle</span></h1>
+  <p class="subtitle">Diagnostica step-by-step del caricamento e riproduzione campioni HD</p>
+
+  <!-- SEZIONE 1: Caricamento -->
+  <div class="section">
+    <h2>1. Caricamento strumento</h2>
+    <div class="controls">
+      <select id="instrSelect">
+        <option value="grandpiano">Grand Piano (acoustic_grand_piano)</option>
+        <option value="jazzpiano">Jazz Piano (bright_acoustic_piano)</option>
+        <option value="elecpiano">Electric Piano (electric_piano_1)</option>
+        <option value="organ">Organ (percussive_organ)</option>
+        <option value="strings">Strings (string_ensemble_1)</option>
+        <option value="brass">Brass (brass_section)</option>
+        <option value="nylonguitar">Nylon Guitar (acoustic_guitar_nylon)</option>
+        <option value="bass">Bass (electric_bass_finger)</option>
+        <option value="vibraphone">Vibraphone (vibraphone)</option>
+        <option value="harpsichord">Harpsichord (harpsichord)</option>
+      </select>
+      <button class="btn-primary" id="btnLoad" onclick="runFullTest()">🧪 Carica e Testa</button>
+    </div>
+  </div>
+
+  <!-- SEZIONE 2: Riproduzione -->
+  <div class="section">
+    <h2>2. Riproduzione</h2>
+    <div class="controls">
+      <button class="btn-play" id="btnPlayScale" onclick="playScale()" disabled>🎹 Scala (C3→C5)</button>
+      <button class="btn-play" id="btnPlayChord" onclick="playChord()" disabled>🎶 Accordo (Cmaj7)</button>
+      <button class="btn-synth" onclick="playSynthRef()">📢 Riferimento Synth (per confronto)</button>
+    </div>
+    <p style="color:var(--dim);font-size:0.82em;margin-bottom:8px;">Note disponibili — clicca per suonare singolarmente:</p>
+    <div class="piano-row" id="pianoRow"></div>
+  </div>
+
+  <!-- SEZIONE 3: Log -->
+  <div class="section">
+    <h2>3. Log diagnostico</h2>
+    <div id="log"></div>
+  </div>
+
+<script>
+/**
+ * TEST SOUNDFONT - Pagina diagnostica isolata.
+ * Testa ogni fase: fetch, eval, decodifica, riproduzione.
+ * Non dipende da sampler.js per isolare il problema.
+ */
+
+// Costanti della CDN FluidR3
+const CDN_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+
+// Mappa identica a sampler.js per coerenza
+const INSTR_MAP = {
+  'grandpiano': 'acoustic_grand_piano',
+  'jazzpiano': 'bright_acoustic_piano',
+  'elecpiano': 'electric_piano_1',
+  'organ': 'percussive_organ',
+  'strings': 'string_ensemble_1',
+  'brass': 'brass_section',
+  'nylonguitar': 'acoustic_guitar_nylon',
+  'bass': 'electric_bass_finger',
+  'vibraphone': 'vibraphone',
+  'harpsichord': 'harpsichord'
+};
+
+let ctx = null;
+let loadedBuffers = {}; // { noteName: AudioBuffer }
+let currentInstrument = null;
+
+// Namespace globale richiesto dai file soundfont del CDN
+window.MIDI = window.MIDI || {};
+window.MIDI.Soundfont = window.MIDI.Soundfont || {};
+
+const logEl = document.getElementById('log');
+
+// --- UTILITY DI LOG ---
+
+function log(msg, cls = 'log-info') {
+  const ts = new Date().toLocaleTimeString('it-IT', { hour12: false });
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = `[${ts}] ${msg}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function logStep(msg) { log(`━━ ${msg}`, 'log-step'); }
+function logOk(msg)   { log(`✓ ${msg}`, 'log-ok'); }
+function logErr(msg)  { log(`✗ ${msg}`, 'log-err'); }
+function logWarn(msg) { log(`⚠ ${msg}`, 'log-warn'); }
+
+function setGlobalStatus(cls, text) {
+  const el = document.getElementById('globalStatus');
+  el.className = 'status-badge status-' + cls;
+  el.textContent = text;
+}
+
+// --- INIZIALIZZAZIONE AUDIO ---
+
+function ensureAudioContext() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  logOk(`AudioContext creato — sampleRate: ${ctx.sampleRate}Hz, state: ${ctx.state}`);
+}
+
+// --- TEST COMPLETO ---
+
+async function runFullTest() {
+  ensureAudioContext();
+  if (ctx.state === 'suspended') await ctx.resume();
+
+  const name = document.getElementById('instrSelect').value;
+  const cdnName = INSTR_MAP[name];
+  loadedBuffers = {};
+  currentInstrument = name;
+  updatePianoRow();
+
+  document.getElementById('btnLoad').disabled = true;
+  document.getElementById('btnPlayScale').disabled = true;
+  document.getElementById('btnPlayChord').disabled = true;
+  setGlobalStatus('loading', 'caricamento...');
+
+  logStep(`STEP 1: Fetch del file .js dal CDN`);
+  const url = `${CDN_BASE}${cdnName}-ogg.js`;
+  log(`URL: ${url}`);
+
+  let scriptText;
+  try {
+    const t0 = performance.now();
+    const response = await fetch(url);
+    const elapsed = (performance.now() - t0).toFixed(0);
+    log(`HTTP status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+    if (!response.ok) {
+      logErr(`Fetch fallito con status ${response.status}`);
+      setGlobalStatus('fail', 'errore fetch');
+      document.getElementById('btnLoad').disabled = false;
+      return;
+    }
+    scriptText = await response.text();
+    logOk(`Fetch completato in ${elapsed}ms — ${(scriptText.length / 1024).toFixed(0)} KB ricevuti`);
+  } catch (e) {
+    logErr(`Errore fetch: ${e.message}`);
+    setGlobalStatus('fail', 'errore fetch');
+    document.getElementById('btnLoad').disabled = false;
+    return;
+  }
+
+  // Mostra le prime righe dello script per diagnosi
+  logStep(`STEP 2: Analisi contenuto dello script`);
+  const firstLines = scriptText.substring(0, 300);
+  log(`Prime righe:\n${firstLines}...`);
+
+  // Tenta esecuzione con window.eval (come nel fix)
+  logStep(`STEP 3: Esecuzione script con window.eval()`);
+  try {
+    // Salva stato precedente per confronto
+    const keysBefore = Object.keys(window.MIDI.Soundfont || {});
+    window.eval(scriptText);
+    const keysAfter = Object.keys(window.MIDI.Soundfont || {});
+    const newKeys = keysAfter.filter(k => !keysBefore.includes(k));
+
+    if (newKeys.length > 0) {
+      logOk(`window.eval ha popolato MIDI.Soundfont con: [${newKeys.join(', ')}]`);
+    } else {
+      logWarn(`window.eval NON ha aggiunto nuove chiavi a MIDI.Soundfont`);
+      log(`Chiavi presenti: [${keysAfter.join(', ')}]`);
+
+      // Test alternativo: prova con eval diretto
+      logStep(`STEP 3b: Tentativo con eval() diretto (senza window)`);
+      eval(scriptText);
+      const keysRetry = Object.keys(window.MIDI.Soundfont || {});
+      const retryNew = keysRetry.filter(k => !keysBefore.includes(k));
+      if (retryNew.length > 0) {
+        logOk(`eval() diretto ha funzionato: [${retryNew.join(', ')}]`);
+      } else {
+        logWarn(`Anche eval() diretto non ha aggiunto chiavi`);
+
+        // Ultimo tentativo: creazione manuale dello script tag
+        logStep(`STEP 3c: Tentativo con <script> tag dinamico`);
+        await new Promise((resolve) => {
+          const blob = new Blob([scriptText], { type: 'application/javascript' });
+          const scriptUrl = URL.createObjectURL(blob);
+          const tag = document.createElement('script');
+          tag.src = scriptUrl;
+          tag.onload = () => {
+            URL.revokeObjectURL(scriptUrl);
+            resolve();
+          };
+          tag.onerror = () => {
+            URL.revokeObjectURL(scriptUrl);
+            logErr('Anche il tag <script> è fallito');
+            resolve();
+          };
+          document.head.appendChild(tag);
+        });
+
+        const keysTag = Object.keys(window.MIDI.Soundfont || {});
+        const tagNew = keysTag.filter(k => !keysBefore.includes(k));
+        if (tagNew.length > 0) {
+          logOk(`<script> tag ha funzionato: [${tagNew.join(', ')}]`);
+        } else {
+          logErr(`Nessun metodo ha popolato MIDI.Soundfont. Problema critico.`);
+        }
+      }
+    }
+  } catch (e) {
+    logErr(`Errore esecuzione script: ${e.message}`);
+    logErr(`Stack: ${e.stack}`);
+    setGlobalStatus('fail', 'errore eval');
+    document.getElementById('btnLoad').disabled = false;
+    return;
+  }
+
+  // Verifica dati estratti
+  logStep(`STEP 4: Estrazione dati audio`);
+  const soundData = window.MIDI.Soundfont[cdnName];
+  if (!soundData) {
+    logErr(`MIDI.Soundfont["${cdnName}"] non esiste!`);
+    log(`Chiavi disponibili in MIDI.Soundfont: [${Object.keys(window.MIDI.Soundfont).join(', ')}]`);
+    setGlobalStatus('fail', 'dati mancanti');
+    document.getElementById('btnLoad').disabled = false;
+    return;
+  }
+
+  const noteKeys = Object.keys(soundData);
+  logOk(`Trovate ${noteKeys.length} note: ${noteKeys.slice(0, 8).join(', ')}...`);
+
+  // Analizza formato del primo campione
+  const firstNote = noteKeys[0];
+  const firstData = soundData[firstNote];
+  log(`Formato campione "${firstNote}": lunghezza=${firstData.length}, inizio="${firstData.substring(0, 60)}..."`);
+
+  // Verifica che sia un data URI valido
+  if (!firstData.startsWith('data:audio/')) {
+    logErr(`Il campione NON è un data URI audio valido!`);
+    setGlobalStatus('fail', 'formato errato');
+    document.getElementById('btnLoad').disabled = false;
+    return;
+  }
+
+  const mimeType = firstData.split(';')[0].replace('data:', '');
+  logOk(`MIME type: ${mimeType}`);
+
+  // Decodifica campioni
+  logStep(`STEP 5: Decodifica AudioBuffer per ogni nota`);
+  let decoded = 0, failed = 0, failedNotes = [];
+
+  const promises = noteKeys.map(async (note) => {
+    try {
+      const base64Data = soundData[note].split(',')[1];
+      if (!base64Data) {
+        failedNotes.push(`${note}:no-b64`);
+        failed++;
+        return;
+      }
+      const raw = atob(base64Data);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+
+      // decodeAudioData necessita di una copia del buffer perché il
+      // trasferimento lo "consuma" — cloniamo per sicurezza
+      const audioBuffer = await ctx.decodeAudioData(arr.buffer.slice(0));
+      loadedBuffers[note] = audioBuffer;
+      decoded++;
+    } catch (e) {
+      failedNotes.push(`${note}:${e.message.substring(0, 30)}`);
+      failed++;
+    }
+  });
+
+  await Promise.all(promises);
+
+  if (decoded > 0) {
+    logOk(`Decodificati con successo: ${decoded}/${noteKeys.length}`);
+  }
+  if (failed > 0) {
+    logWarn(`Falliti: ${failed}/${noteKeys.length}`);
+    log(`Note fallite: ${failedNotes.join(', ')}`);
+  }
+  if (decoded === 0) {
+    logErr(`NESSUN campione decodificato! Potrebbe essere un problema di formato OGG nel browser.`);
+
+    // Test con formato mp3 come fallback
+    logStep(`STEP 5b: Tentativo con formato MP3`);
+    const mp3Url = `${CDN_BASE}${cdnName}-mp3.js`;
+    log(`URL MP3: ${mp3Url}`);
+    try {
+      const mp3Resp = await fetch(mp3Url);
+      if (mp3Resp.ok) {
+        const mp3Text = await mp3Resp.text();
+        // Pulisci il precedente
+        delete window.MIDI.Soundfont[cdnName];
+        window.eval(mp3Text);
+        const mp3Data = window.MIDI.Soundfont[cdnName];
+        if (mp3Data) {
+          const mp3Keys = Object.keys(mp3Data);
+          let mp3ok = 0, mp3fail = 0;
+          const mp3Promises = mp3Keys.map(async (note) => {
+            try {
+              const b64 = mp3Data[note].split(',')[1];
+              const raw = atob(b64);
+              const arr = new Uint8Array(raw.length);
+              for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+              const buf = await ctx.decodeAudioData(arr.buffer.slice(0));
+              loadedBuffers[note] = buf;
+              mp3ok++;
+            } catch (e) { mp3fail++; }
+          });
+          await Promise.all(mp3Promises);
+          if (mp3ok > 0) {
+            logOk(`MP3: decodificati ${mp3ok}/${mp3Keys.length} — il browser non supporta OGG ma supporta MP3`);
+            logWarn(`AZIONE NECESSARIA: cambiare sampler.js per usare -mp3.js invece di -ogg.js`);
+          } else {
+            logErr(`Anche MP3 fallito: ${mp3fail} errori`);
+          }
+        }
+      }
+    } catch (e) {
+      logErr(`Errore test MP3: ${e.message}`);
+    }
+  }
+
+  // Info su un buffer decodificato
+  const bufferKeys = Object.keys(loadedBuffers);
+  if (bufferKeys.length > 0) {
+    const sample = loadedBuffers[bufferKeys[0]];
+    logStep(`STEP 6: Info AudioBuffer`);
+    log(`Esempio "${bufferKeys[0]}": durata=${sample.duration.toFixed(2)}s, canali=${sample.numberOfChannels}, sampleRate=${sample.sampleRate}`);
+  }
+
+  // Pulizia globale
+  delete window.MIDI.Soundfont[cdnName];
+
+  // Stato finale
+  if (bufferKeys.length > 0) {
+    setGlobalStatus('ok', `${bufferKeys.length} note pronte`);
+    document.getElementById('btnPlayScale').disabled = false;
+    document.getElementById('btnPlayChord').disabled = false;
+    logOk(`PRONTO — premi i pulsanti di riproduzione per ascoltare`);
+  } else {
+    setGlobalStatus('fail', 'nessun buffer');
+    logErr(`FALLITO — nessun campione utilizzabile`);
+  }
+
+  updatePianoRow();
+  document.getElementById('btnLoad').disabled = false;
+}
+
+// --- RIPRODUZIONE ---
+
+function playSampleNote(noteName, duration = 1.0, volume = 0.8) {
+  /**
+   * Riproduce un singolo campione tramite AudioContext.
+   * Usa un inviluppo ADSR leggero per evitare click.
+   */
+  const buffer = loadedBuffers[noteName];
+  if (!buffer) {
+    logWarn(`Nessun buffer per "${noteName}"`);
+    return false;
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+
+  const gain = ctx.createGain();
+  const now = ctx.currentTime;
+
+  // Inviluppo semplice: attacco rapidissimo, sustain, release dolce
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+  gain.gain.setValueAtTime(volume, now + duration - 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration + 0.3);
+
+  source.connect(gain);
+  gain.connect(ctx.destination);
+
+  source.start(now);
+  source.stop(now + duration + 0.4);
+
+  log(`▶ Riproduzione "${noteName}" — dur: ${duration.toFixed(1)}s, vol: ${volume}`);
+  return true;
+}
+
+function playScale() {
+  /**
+   * Suona una scala da C3 a C5 con le note disponibili.
+   * Usa le note che effettivamente hanno un buffer caricato.
+   */
+  ensureAudioContext();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  // Sequenza cromatica C3→C5
+  const scaleNotes = ['C3','Db3','D3','Eb3','E3','F3','Gb3','G3','Ab3','A3','Bb3','B3',
+                      'C4','Db4','D4','Eb4','E4','F4','Gb4','G4','Ab4','A4','Bb4','B4','C5'];
+
+  const available = scaleNotes.filter(n => loadedBuffers[n]);
+  if (available.length === 0) {
+    logErr('Nessuna nota disponibile nel range C3-C5');
+    return;
+  }
+
+  logStep(`Scala: ${available.length} note nel range C3-C5`);
+  const spacing = 0.35;
+  available.forEach((note, i) => {
+    const t = ctx.currentTime + i * spacing;
+    const source = ctx.createBufferSource();
+    source.buffer = loadedBuffers[note];
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.7, t + 0.01);
+    gain.gain.setValueAtTime(0.7, t + spacing - 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + spacing + 0.15);
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(t);
+    source.stop(t + spacing + 0.2);
+  });
+}
+
+function playChord() {
+  /**
+   * Suona un accordo Cmaj7 (C4, E4, G4, B4) per verificare la
+   * riproduzione simultanea di pi?? campioni.
+   */
+  ensureAudioContext();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const chordNotes = ['C4', 'E4', 'G4', 'B4'];
+  const available = chordNotes.filter(n => loadedBuffers[n]);
+  logStep(`Accordo Cmaj7: ${available.length}/4 note disponibili`);
+
+  available.forEach(note => {
+    const source = ctx.createBufferSource();
+    source.buffer = loadedBuffers[note];
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
+    gain.gain.setValueAtTime(0.5, now + 1.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(now);
+    source.stop(now + 3);
+  });
+}
+
+function playSynthRef() {
+  /**
+   * Suona un C4 sintetizzato con oscillatore, come confronto
+   * per assicurarsi che l'audio del browser funzioni.
+   */
+  ensureAudioContext();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = 261.63; // C4
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 1.6);
+  logStep('Synth di riferimento: C4 triangle wave');
+}
+
+// --- PIANO VISUALE ---
+
+function updatePianoRow() {
+  /**
+   * Genera una riga di tasti che mostra ogni nota e il
+   * suo stato (buffer presente / assente). Permette di
+   * suonare singole note cliccando.
+   */
+  const row = document.getElementById('pianoRow');
+  row.innerHTML = '';
+
+  // Range ragionevole: A0 -> C8
+  const notes = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  for (let oct = 1; oct <= 7; oct++) {
+    for (const n of notes) {
+      const name = `${n}${oct}`;
+      const btn = document.createElement('button');
+      btn.className = 'key-btn';
+      btn.textContent = name;
+
+      if (loadedBuffers[name]) {
+        btn.classList.add('has-buffer');
+        btn.onclick = () => {
+          btn.classList.add('playing');
+          playSampleNote(name, 1.0, 0.7);
+          setTimeout(() => btn.classList.remove('playing'), 400);
+        };
+      } else {
+        btn.classList.add('no-buffer');
+        btn.disabled = true;
+      }
+      row.appendChild(btn);
+    }
+  }
+}
+
+// Stato iniziale del piano (vuoto)
+updatePianoRow();
+</script>
+</body>
+</html>

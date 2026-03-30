@@ -19,8 +19,8 @@
   <div class="header" style="justify-content: space-between;">
     <div class="app-title">🎹🎸 Alessandro Rizzo Simulator 🎵🪗</div>
     <div style="display:flex; flex-direction:column; align-items:flex-end;">
-      <div class="version-badge">v 0.4</div>
-      <a href="v5/index.html" style="color:#ffffff99; font-size:12px; margin-top:5px; text-decoration:underline;">Testa v0.5</a>
+      <div class="version-badge" style="background:#5c2d91;">v 0.5 (Testing)</div>
+      <a href="../index.html" style="color:#ffffff99; font-size:12px; margin-top:5px; text-decoration:underline;">Esci (torna a v0.4)</a>
     </div>
   </div>
 
@@ -64,17 +64,28 @@
     <div class="chord-card" id="cc3"><div class="chord-num" id="cnum3">IV</div><div class="chord-name" id="cname3">—</div><div class="chord-fn" id="cfn3"></div></div>
   </div>
 
-  <!-- INSTRUMENT -->
-  <div class="instrument-row">
-    <div class="instrument-current" id="instrStrip">
-      <div class="instrument-icon" id="instrIcon">🎹</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <!-- STRUMENTI: card base + card basso + toggle HD -->
+  <div class="instrument-row-split">
+    <!-- Strumento principale -->
+    <div class="instrument-card" id="instrCardMain">
+      <div class="instrument-card-header">
+        <div class="instrument-icon" id="instrIcon">🎹</div>
         <div class="instrument-name" id="instrName">Grand Piano</div>
-        <div class="instrument-hint" id="instrBass">🎸 —</div>
       </div>
+      <div class="instrument-card-hint">premi per cambiare strumento a caso</div>
+      <button class="instrument-rnd-btn" id="btnRndMain" onclick="randomMainInstrument()">🎲 cambia strumento</button>
     </div>
-    <button class="instrument-random" onclick="randomInstrument()">🎲<div class="instrument-random-lbl">cambia</div></button>
+    <!-- Basso -->
+    <div class="instrument-card" id="instrCardBass">
+      <div class="instrument-card-header">
+        <div class="instrument-icon">🎸</div>
+        <div class="instrument-name" id="instrBassName">—</div>
+      </div>
+      <div class="instrument-card-hint">premi per cambiare basso a caso</div>
+      <button class="instrument-rnd-btn" id="btnRndBass" onclick="randomBassInstrument()">🎲 cambia basso</button>
+    </div>
   </div>
+
 
   <!-- LOCATION -->
   <div class="location-card">
@@ -108,6 +119,7 @@
   <!-- Scripts -->
   <script src="js/db-music.js"></script>
   <script src="js/db-scenes.js"></script>
+  <script src="js/sampler.js"></script>
   <script src="js/audio-engine.js"></script>
   <script src="js/ui-manager.js"></script>
 </body>
