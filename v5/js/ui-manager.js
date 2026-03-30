@@ -51,7 +51,9 @@ const COLOR_LABELS = {
 
 const THEME_QUEUE_KEY = 'themeQueue_v05g';
 const THEME_RECENT_KEY = 'themeRecent_v05g';
+const THEME_RECENT_FAMILY_KEY = 'themeRecentFamily_v05g';
 const RECENT_THEME_WINDOW = 12;
+const RECENT_FAMILY_WINDOW = 4;
 
 // Lista bassi mobile-first disponibili
 const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
@@ -159,7 +161,19 @@ function resolveThemeProfile(theme) {
   else if (simpleDiatonic || hasSus) color = 'diatonico';
   else color = 'tonale_esteso';
 
-  theme._profile = { style, color };
+  let family;
+  if (hasBluesCadence && domCount >= 2) family = 'dominant_blues';
+  else if (hasCircle && (hasMaj7 || hasMin7)) family = 'jazz_turnaround';
+  else if (startsMinor && themeHasFn(theme, 'bII')) family = 'minor_phrygian';
+  else if (startsMinor && hasBorrowed) family = 'minor_cinematic';
+  else if (hasBorrowed) family = 'borrowed_major';
+  else if (hasDim || hasAug) family = 'chromatic_theatre';
+  else if (hasSus) family = 'suspended_pop';
+  else if (simpleDiatonic && themeHasFn(theme, 'vi')) family = 'pop_loop';
+  else if (simpleDiatonic) family = 'plain_major';
+  else family = 'extended_tonal';
+
+  theme._profile = { style, color, family };
   return theme._profile;
 }
 
@@ -173,23 +187,24 @@ function applyThemeProfile(theme) {
 function buildThemeQueue() {
   const buckets = {};
   THEMES.forEach((theme, index) => {
-    const { style } = resolveThemeProfile(theme);
-    if (!buckets[style]) buckets[style] = [];
-    buckets[style].push(index);
+    const { style, family } = resolveThemeProfile(theme);
+    const bucketKey = `${family}::${style}`;
+    if (!buckets[bucketKey]) buckets[bucketKey] = [];
+    buckets[bucketKey].push(index);
   });
 
-  const styles = shuffleList(Object.keys(buckets));
-  styles.forEach((style) => {
-    buckets[style] = shuffleList(buckets[style]);
+  const bucketKeys = shuffleList(Object.keys(buckets));
+  bucketKeys.forEach((bucketKey) => {
+    buckets[bucketKey] = shuffleList(buckets[bucketKey]);
   });
 
   const queue = [];
   let remaining = true;
   while (remaining) {
     remaining = false;
-    for (const style of styles) {
-      if (buckets[style].length) {
-        queue.push(buckets[style].shift());
+    for (const bucketKey of bucketKeys) {
+      if (buckets[bucketKey].length) {
+        queue.push(buckets[bucketKey].shift());
         remaining = true;
       }
     }
@@ -216,17 +231,28 @@ function writeStoredList(key, list) {
 function pickNextThemeIndex() {
   let queue = readStoredList(THEME_QUEUE_KEY).filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < THEMES.length);
   const recent = readStoredList(THEME_RECENT_KEY).filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < THEMES.length);
+  const recentFamilies = readStoredList(THEME_RECENT_FAMILY_KEY).filter((family) => typeof family === 'string');
 
   if (!queue.length) queue = buildThemeQueue();
 
-  let pickAt = queue.findIndex((idx) => !recent.includes(idx));
+  let pickAt = queue.findIndex((idx) => {
+    if (recent.includes(idx)) return false;
+    const { family } = resolveThemeProfile(THEMES[idx]);
+    return !recentFamilies.includes(family);
+  });
+  if (pickAt === -1) {
+    pickAt = queue.findIndex((idx) => !recent.includes(idx));
+  }
   if (pickAt === -1) pickAt = 0;
 
   const [nextIdx] = queue.splice(pickAt, 1);
   const nextRecent = [nextIdx, ...recent.filter((idx) => idx !== nextIdx)].slice(0, RECENT_THEME_WINDOW);
+  const nextFamily = resolveThemeProfile(THEMES[nextIdx]).family;
+  const nextRecentFamilies = [nextFamily, ...recentFamilies.filter((family) => family !== nextFamily)].slice(0, RECENT_FAMILY_WINDOW);
 
   writeStoredList(THEME_QUEUE_KEY, queue);
   writeStoredList(THEME_RECENT_KEY, nextRecent);
+  writeStoredList(THEME_RECENT_FAMILY_KEY, nextRecentFamilies);
   return nextIdx;
 }
 
