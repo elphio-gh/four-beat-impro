@@ -180,9 +180,10 @@ function scalePattern(pattern, spanBeats) {
 }
 
 function currentSectionEnergy() {
-  if (sezione === 'intro') return 0.84;
-  if (sezione === 'rit') return window.currentThemeArrangement?.tensionLift || 1.14;
-  return 1;
+  if (sezione === 'intro') return 0.96;
+  if (sezione === 'rit') return (window.currentThemeArrangement?.tensionLift || 1.14) + 0.08;
+  if (sezione === 'strofa') return 1.04;
+  return 1.02;
 }
 
 function playChordSegment(notes, t0, spb, spanBeats, sound, rhythmIdx, volScale = 1.0) {
