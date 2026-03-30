@@ -167,7 +167,7 @@ function doFullRandom() {
   btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
   if (isPlaying || isCountingIn) stopAll(true);
   const i = Math.floor(Math.random() * THEMES.length);
-  THEMES[i].sound = 'grandpiano';
+  THEMES[i].sound = MAIN_INSTRUMENT_LIST[Math.floor(Math.random() * MAIN_INSTRUMENT_LIST.length)];
   window.currentBassSound = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
   selectTheme(i, false);
   refreshBassDisplay();
