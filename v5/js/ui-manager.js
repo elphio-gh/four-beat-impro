@@ -11,9 +11,9 @@ let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
 
-const MAIN_INSTRUMENT_LIST = ['grandpiano', 'jazzpiano', 'elecpiano', 'organ', 'accordion'];
-const MAIN_INSTRUMENT_WEIGHTED = ['grandpiano', 'grandpiano', 'grandpiano', 'jazzpiano', 'elecpiano', 'organ', 'accordion'];
+const MAIN_INSTRUMENT_LIST = ['grandpiano', 'elecpiano', 'organ', 'accordion', 'vibraphone'];
 const MAIN_SOUND_ALIASES = {
+  jazzpiano: 'vibraphone',
   pipeorgan: 'organ',
   strings: 'organ',
   brass: 'organ',
@@ -28,10 +28,12 @@ const MAIN_SOUND_ALIASES = {
 };
 
 // Lista bassi mobile-first disponibili
-const BASS_LIST = ['bass_electric', 'bass_acoustic'];
+const BASS_LIST = ['bass_electric', 'bass_acoustic', 'bass_fretless', 'bass_synth'];
 const BASS_DISPLAY_NAMES = {
   'bass_electric': 'Electric Bass',
-  'bass_acoustic': 'Acoustic Bass'
+  'bass_acoustic': 'Acoustic Bass',
+  'bass_fretless': 'Fretless Bass',
+  'bass_synth': 'Synth Bass'
 };
 // Strumento basso corrente (usato da audio-engine.js tramite window.currentBassSound)
 window.currentBassSound = 'bass_electric';
@@ -47,6 +49,11 @@ function bNotes(r, t) { return CHORD_INT[t].map(i => r + i); }
 function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', min7: 'm7', sus4: 'sus4', sus2: 'sus2', maj6: '6', dim7: '°7', aug: '+', min6: 'm6' }; return NOTES[r % 12] + (s[t] ?? ''); }
 function normalizeMainSound(sound) { return MAIN_INSTRUMENT_LIST.includes(sound) ? sound : (MAIN_SOUND_ALIASES[sound] || 'grandpiano'); }
 function normalizeBassSound(sound) { return BASS_LIST.includes(sound) ? sound : 'bass_electric'; }
+function nextInList(list, current) {
+  const idx = list.indexOf(current);
+  if (idx === -1) return list[0];
+  return list[(idx + 1) % list.length];
+}
 
 function assignRhythms() { for (let i = 0; i < 4; i++) chordRhythms[i] = Math.floor(Math.random() * RHYTHM_PATTERNS.length); }
 function assignBassPatterns() {
@@ -225,8 +232,7 @@ function toggleSezioneMusicale() {
 // Mostra "caricamento..." durante il download del pack audio leggero
 async function randomMainInstrument() {
   const cur = normalizeMainSound(THEMES[themeIdx].sound);
-  let next = cur;
-  while (next === cur) next = randomWeightedSound();
+  const next = nextInList(MAIN_INSTRUMENT_LIST, cur);
   THEMES[themeIdx].sound = next;
 
   const nameEl = document.getElementById('instrName');
@@ -244,8 +250,7 @@ async function randomMainInstrument() {
 // Mostra "caricamento..." durante il download del pack audio leggero
 async function randomBassInstrument() {
   const cur = window.currentBassSound;
-  let next = cur;
-  while (next === cur) next = BASS_LIST[Math.floor(Math.random() * BASS_LIST.length)];
+  const next = nextInList(BASS_LIST, cur);
   window.currentBassSound = next;
 
   const nameEl = document.getElementById('instrBassName');
@@ -266,7 +271,7 @@ function randomInstrument() {
 }
 
 function randomWeightedSound() {
-  return MAIN_INSTRUMENT_WEIGHTED[Math.floor(Math.random() * MAIN_INSTRUMENT_WEIGHTED.length)];
+  return nextInList(MAIN_INSTRUMENT_LIST, normalizeMainSound(THEMES[themeIdx].sound));
 }
 
 

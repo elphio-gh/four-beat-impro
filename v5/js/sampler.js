@@ -11,12 +11,6 @@ const SAMPLE_PACKS = {
     release: 0.35,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
-  jazzpiano: {
-    kind: 'pitched',
-    gain: 2.4,
-    release: 0.32,
-    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
-  },
   elecpiano: {
     kind: 'pitched',
     gain: 2.3,
@@ -35,6 +29,12 @@ const SAMPLE_PACKS = {
     release: 0.2,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  vibraphone: {
+    kind: 'pitched',
+    gain: 2.2,
+    release: 0.5,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   bass_electric: {
     kind: 'pitched',
     gain: 1.2,
@@ -45,6 +45,18 @@ const SAMPLE_PACKS = {
     kind: 'pitched',
     gain: 1.05,
     release: 0.18,
+    samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_fretless: {
+    kind: 'pitched',
+    gain: 1.15,
+    release: 0.22,
+    samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_synth: {
+    kind: 'pitched',
+    gain: 1.35,
+    release: 0.16,
     samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
   kick: {
@@ -70,13 +82,12 @@ const SAMPLE_PACKS = {
 };
 
 const SAMPLE_ALIASES = {
+  jazzpiano: 'vibraphone',
   pipeorgan: 'organ',
   strings: 'organ',
   brass: 'organ',
   synthpad: 'organ',
   nylonguitar: 'accordion',
-  bass_fretless: 'bass_acoustic',
-  bass_synth: 'bass_electric',
   honkytonk: 'grandpiano',
   harpsichord: 'grandpiano',
   distguitar: 'elecpiano',
@@ -95,8 +106,7 @@ const Sampler = {
   },
 
   assetUrl(path) {
-    const version = window.APP_VERSION || '0.5d';
-    return `${this.baseUrl}${path}?v=${encodeURIComponent(version)}`;
+    return `${this.baseUrl}${path}`;
   },
 
   async loadStartupPreset(mainName = 'grandpiano', bassName = 'bass_electric') {

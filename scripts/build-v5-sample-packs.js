@@ -11,10 +11,6 @@ const PACKS = {
     source: 'acoustic_grand_piano',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
-  jazzpiano: {
-    source: 'bright_acoustic_piano',
-    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
-  },
   elecpiano: {
     source: 'electric_piano_1',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
@@ -27,12 +23,24 @@ const PACKS = {
     source: 'accordion',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  vibraphone: {
+    source: 'vibraphone',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   bass_electric: {
     source: 'electric_bass_finger',
     notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
   bass_acoustic: {
     source: 'acoustic_bass',
+    notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_fretless: {
+    source: 'fretless_bass',
+    notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_synth: {
+    source: 'synth_bass_1',
     notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
   kick: {
