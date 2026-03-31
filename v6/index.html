@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alessandro Rizzo Simulator v6</title>
+  <link rel="stylesheet" href="css/style.css?v=0.6.1">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Simulatore stile-driven</div>
+        <h1>🎬 Alessandro Rizzo Simulator</h1>
+      </div>
+      <div class="version-block">
+        <div class="version-label">Versione diretta</div>
+        <div class="version-value" id="versionText">0.6.0</div>
+      </div>
+    </header>
+
+    <section class="picker-card">
+      <label class="field-label" for="styleSelect">Scegli lo stile</label>
+      <div class="picker-row">
+        <select id="styleSelect" class="style-select"></select>
+        <button id="randomStyleBtn" class="secondary-btn" type="button">🎲 Stile random</button>
+      </div>
+    </section>
+
+    <button id="styleCard" class="style-card compact" type="button">
+      <div class="style-card-top">
+        <div class="style-icon" id="styleIcon">🎷</div>
+        <div class="style-copy">
+          <div class="style-name" id="styleName">Jazz Swing</div>
+          <div class="style-subtitle" id="styleSubtitle">Scena nel club, fumo e battute secche.</div>
+        </div>
+        <div class="style-hint">rigenera</div>
+      </div>
+      <div class="style-badges">
+        <span class="badge" id="variationName">Feather Swing</span>
+        <span class="badge" id="tempoBadge">138 BPM</span>
+        <span class="badge" id="styleMeta">Jazz Piano + Acoustic Bass</span>
+      </div>
+    </button>
+
+    <section class="progress-row">
+      <div class="progress-block active-intro" id="pbIntro">
+        <div class="progress-lbl">Intro</div>
+        <div class="progress-val" id="pvIntro">1 / 2</div>
+      </div>
+      <div class="progress-block" id="pbStrofa">
+        <div class="progress-lbl">Strofa</div>
+        <div class="progress-val" id="pvStrofa">—</div>
+      </div>
+      <div class="progress-block" id="pbRit">
+        <div class="progress-lbl">Rit</div>
+        <div class="progress-val" id="pvRit">—</div>
+      </div>
+    </section>
+
+    <div class="status-line" id="statusText">Pronto</div>
+
+    <section class="countin-row" aria-label="Count-in beat">
+      <span class="countin-beat" id="cb1">1</span>
+      <span class="countin-beat" id="cb2">2</span>
+      <span class="countin-beat" id="cb3">3</span>
+      <span class="countin-beat" id="cb4">4</span>
+    </section>
+
+    <section class="chord-grid" id="chordGrid"></section>
+
+    <section class="instrument-row-split">
+      <div class="instrument-card">
+        <label class="field-label" for="mainInstrumentSelect">Accordi</label>
+        <select id="mainInstrumentSelect" class="style-select instrument-select"></select>
+      </div>
+      <div class="instrument-card">
+        <label class="field-label" for="bassInstrumentSelect">Basso</label>
+        <select id="bassInstrumentSelect" class="style-select instrument-select"></select>
+      </div>
+    </section>
+
+    <section class="transport-card">
+      <button id="playBtn" class="play-btn" type="button">▶ Play</button>
+      <button id="stopBtn" class="stop-btn" type="button">■ Stop</button>
+    </section>
+
+    <button id="btnEnding" class="btn-finale" type="button" disabled>🎬 Segnala finale ad Alessandro</button>
+
+    <section class="tempo-strip">
+      <div class="tempo-mode-block">
+        <span class="tempo-lbl">BPM</span>
+        <div class="tempo-mode-group" role="group" aria-label="Modalita tempo">
+          <button class="tempo-mode-btn" id="tempoModeEasy" type="button">easy</button>
+          <button class="tempo-mode-btn" id="tempoModeNormal" type="button">normal</button>
+          <button class="tempo-mode-btn" id="tempoModeCustom" type="button">custom</button>
+        </div>
+      </div>
+      <div class="tempo-bottom-row">
+        <div class="tempo-value-block">
+          <button class="tempo-adj" id="tempoMinus" type="button">−</button>
+          <span class="tempo-num" id="tempoVal">120</span>
+          <button class="tempo-adj" id="tempoPlus" type="button">+</button>
+        </div>
+        <button id="metroBtn" class="metro-btn" type="button">Metronomo OFF</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/db-styles.js?v=0.6.1"></script>
+  <script src="js/sampler.js?v=0.6.1"></script>
+  <script src="js/audio-engine.js?v=0.6.1"></script>
+  <script src="js/ui-manager.js?v=0.6.1"></script>
+</body>
+</html>
