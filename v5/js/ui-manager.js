@@ -61,12 +61,14 @@ const BASS_PROFILE_GROUPS = {
   sync: [2, 3]
 };
 
+const STRUCTURE_TARGETS = Object.freeze({ strofa: 4, rit: 4 });
+
 const FORM_VARIANTS = {
-  balanced: { strofa: 4, rit: 4 },
-  verseLead: { strofa: 5, rit: 3 },
-  hookLift: { strofa: 3, rit: 4 },
-  callResponse: { strofa: 3, rit: 3 },
-  shortBurst: { strofa: 2, rit: 4 }
+  balanced: STRUCTURE_TARGETS,
+  verseLead: STRUCTURE_TARGETS,
+  hookLift: STRUCTURE_TARGETS,
+  callResponse: STRUCTURE_TARGETS,
+  shortBurst: STRUCTURE_TARGETS
 };
 
 const ARRANGEMENT_TEMPLATES = [
@@ -167,7 +169,7 @@ window.currentThemeArrangement = null;
 let sezione = 'none';
 let sezCounter = { strofa: 0, rit: 0 };
 let introGiro = 0;
-let targets = { strofa: 4, rit: 4 };
+let targets = { ...STRUCTURE_TARGETS };
 
 function bNotes(r, t) { return CHORD_INT[t].map(i => r + i); }
 function cLabel(r, t) { const s = { maj: '', min: 'm', dom7: '7', maj7: 'maj7', min7: 'm7', sus4: 'sus4', sus2: 'sus2', maj6: '6', dim7: '°7', aug: '+', min6: 'm6' }; return NOTES[r % 12] + (s[t] ?? ''); }
@@ -455,7 +457,7 @@ function buildThemeArrangement(theme) {
 function applyThemeArrangement(theme, { preserveBass = false } = {}) {
   const arrangement = buildThemeArrangement(theme);
   window.currentThemeArrangement = arrangement;
-  targets = { ...(FORM_VARIANTS[arrangement.form] || FORM_VARIANTS.balanced) };
+  targets = { ...STRUCTURE_TARGETS };
   if (!preserveBass) {
     window.currentBassSound = pickBassSoundForProfile(arrangement.bassProfile, theme.perc);
   }
@@ -706,7 +708,7 @@ function updateStrutturaStatus() {
 
 function resetStruttura() {
   sezione = 'none'; sezCounter = { strofa: 0, rit: 0 }; introGiro = 0;
-  targets = { ...(FORM_VARIANTS[window.currentThemeArrangement?.form] || FORM_VARIANTS.balanced) };
+  targets = { ...STRUCTURE_TARGETS };
   document.body.classList.remove('sec-intro', 'sec-strofa', 'sec-rit');
   document.getElementById('pvIntro').textContent = '—';
   document.getElementById('prIntro').textContent = '';
