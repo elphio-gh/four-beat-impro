@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=0.5.2">
 </head>
 <body>
   <div class="curt curt-l" id="curtL"></div>
@@ -22,7 +22,7 @@
   <div class="header" style="justify-content: space-between;">
     <div class="app-title">🎹🎸 Alessandro Rizzo Simulator 🎵🪗</div>
     <div class="version-block">
-      <div class="version-current">Versione corrente 0.5i</div>
+      <div class="version-current">Versione corrente 0.5.2</div>
       <a class="version-link" href="../failsafe/index.html">usa la vecchia versione</a>
     </div>
   </div>
@@ -97,18 +97,6 @@
     <button class="btn-loc" onclick="newLocation()" title="Nuova scena">↺</button>
   </div>
 
-  <div class="theme-meta-card">
-    <div class="theme-meta-item">
-      <span class="theme-meta-label">Stile</span>
-      <span class="theme-meta-value" id="styleText">—</span>
-    </div>
-    <div class="theme-meta-sep">·</div>
-    <div class="theme-meta-item">
-      <span class="theme-meta-label">Colore</span>
-      <span class="theme-meta-value" id="moodText">—</span>
-    </div>
-  </div>
-
   <!-- PLAY / STOP -->
   <div class="main-actions">
     <button class="btn-play-big" id="btnPlay" onclick="togglePlay()">▶ Play</button>
@@ -119,23 +107,34 @@
   <button class="btn-finale" id="btnEnding" onclick="armEnding()" disabled>🎬 Segnala finale ad Alessandro</button>
 
   <!-- RANDOM -->
-  <button class="btn-random" id="btnRandom" onclick="doFullRandom()">🎲 RANDOMIZZA TUTTO — nuova progressione, stile e scena</button>
+  <button class="btn-random" id="btnRandom" onclick="doFullRandom()">🎲 Premi qui per una nuova progressione, scena e set</button>
 
   <!-- TEMPO -->
   <div class="tempo-strip">
-    <span class="tempo-lbl">BPM</span>
-    <button class="tempo-adj" onclick="setTempo(Math.max(60,bpm-5));document.getElementById('tempoSlider').value=bpm">−</button>
-    <span class="tempo-num" id="tempoVal">120</span>
-    <button class="tempo-adj" onclick="setTempo(Math.min(200,bpm+5));document.getElementById('tempoSlider').value=bpm">+</button>
-    <button class="metro-btn" id="metroBtn" onclick="toggleMetronome()">metronomo OFF</button>
-    <input type="range" id="tempoSlider" min="70" max="160" value="120" oninput="setTempo(+this.value)" style="display:none">
+    <div class="tempo-mode-block">
+      <span class="tempo-lbl">BPM</span>
+      <div class="tempo-mode-group" role="group" aria-label="Modalita tempo">
+        <button class="tempo-mode-btn" id="tempoModeEasy" onclick="setTempoMode('easy')">easy</button>
+        <button class="tempo-mode-btn" id="tempoModeNormal" onclick="setTempoMode('normal')">normal</button>
+        <button class="tempo-mode-btn" id="tempoModeCustom" onclick="setTempoMode('custom')">custom</button>
+      </div>
+    </div>
+    <div class="tempo-bottom-row">
+      <div class="tempo-value-block">
+        <button class="tempo-adj" id="tempoMinus" onclick="adjustCustomTempo(-5)">−</button>
+        <span class="tempo-num" id="tempoVal">120</span>
+        <button class="tempo-adj" id="tempoPlus" onclick="adjustCustomTempo(5)">+</button>
+      </div>
+      <button class="metro-btn" id="metroBtn" onclick="toggleMetronome()">metronomo OFF</button>
+    </div>
+    <input type="range" id="tempoSlider" min="60" max="200" value="120" oninput="setTempo(+this.value)" style="display:none">
   </div>
 
   <!-- Scripts -->
-  <script src="js/db-music.js"></script>
-  <script src="js/db-scenes.js"></script>
-  <script src="js/sampler.js"></script>
-  <script src="js/audio-engine.js"></script>
-  <script src="js/ui-manager.js"></script>
+  <script src="js/db-music.js?v=0.5.2"></script>
+  <script src="js/db-scenes.js?v=0.5.2"></script>
+  <script src="js/sampler.js?v=0.5.2"></script>
+  <script src="js/audio-engine.js?v=0.5.2"></script>
+  <script src="js/ui-manager.js?v=0.5.2"></script>
 </body>
 </html>

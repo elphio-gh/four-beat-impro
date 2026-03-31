@@ -10,6 +10,8 @@ let metronomeOn = false;
 let chordRhythms = [0, 0, 0, 0];
 let bassPatterns = [0, 0, 0, 0];
 let bassEngine = 0;
+let tempoMode = 'easy';
+let customTempo = 120;
 
 const MAIN_INSTRUMENT_LIST = ['grandpiano', 'elecpiano', 'brass', 'strings', 'honkytonk', 'marimba', 'nylonguitar', 'organ', 'accordion', 'vibraphone'];
 const BRIGHT_MAIN_SOUNDS = ['grandpiano', 'elecpiano', 'brass', 'honkytonk', 'marimba'];
@@ -31,35 +33,18 @@ const MAIN_SOUND_ALIASES = {
   harpsichord: 'grandpiano'
 };
 
-const STYLE_LABELS = {
-  swing: 'Swing',
-  rock: 'Rock',
-  funk: 'Funk',
-  bossa: 'Bossa',
-  march: 'Marcia',
-  latin: 'Latin',
-  gospel: 'Gospel',
-  tango: 'Tango'
-};
-
-const COLOR_LABELS = {
-  diatonico: 'Diatonico',
-  tonale_esteso: 'Tonale esteso',
-  minore_tonale: 'Minore tonale',
-  modale_minore: 'Modale minore',
-  prestito_modale: 'Prestito modale',
-  cadenziale_jazz: 'Cadenziale jazz',
-  blues: 'Blues',
-  cromatico: 'Cromatico'
-};
-
-const THEME_QUEUE_KEY = 'themeQueue_v05i';
-const THEME_RECENT_KEY = 'themeRecent_v05i';
-const THEME_RECENT_FAMILY_KEY = 'themeRecentFamily_v05i';
-const THEME_RECENT_SIGNATURE_KEY = 'themeRecentSignature_v05i';
+const THEME_QUEUE_KEY = 'themeQueue_v051';
+const THEME_RECENT_KEY = 'themeRecent_v051';
+const THEME_RECENT_FAMILY_KEY = 'themeRecentFamily_v051';
+const THEME_RECENT_SIGNATURE_KEY = 'themeRecentSignature_v051';
 const RECENT_THEME_WINDOW = 12;
 const RECENT_FAMILY_WINDOW = 4;
 const RECENT_SIGNATURE_WINDOW = 6;
+const EASY_TEMPO_MIN = 85;
+const EASY_TEMPO_MAX = 115;
+const EASY_TEMPO_BASE = 100;
+const CUSTOM_TEMPO_MIN = 60;
+const CUSTOM_TEMPO_MAX = 200;
 
 const RHYTHM_GROUPS = {
   sparse: [0, 2],
@@ -516,12 +501,63 @@ function getThemeSound(theme = THEMES[themeIdx]) {
   return normalizeMainSound(theme?.sound || 'grandpiano');
 }
 
-function refreshThemeMeta() {
-  const theme = THEMES[themeIdx];
-  const styleEl = document.getElementById('styleText');
-  const moodEl = document.getElementById('moodText');
-  if (styleEl) styleEl.textContent = STYLE_LABELS[theme.perc] || 'Libero';
-  if (moodEl) moodEl.textContent = COLOR_LABELS[theme.lg] || theme.lg || 'Aperto';
+function computeEasyTempo() {
+  const nb = Math.round(EASY_TEMPO_BASE + (Math.random() - 0.5) * 30);
+  return Math.max(EASY_TEMPO_MIN, Math.min(EASY_TEMPO_MAX, nb));
+}
+
+function computeNormalTempo(theme = THEMES[themeIdx]) {
+  return theme?.tempo || 120;
+}
+
+function syncTempoUI() {
+  const tempoVal = document.getElementById('tempoVal');
+  const tempoSlider = document.getElementById('tempoSlider');
+  if (tempoVal) tempoVal.textContent = bpm;
+  if (tempoSlider) tempoSlider.value = bpm;
+}
+
+function refreshTempoModeUI() {
+  const isCustom = tempoMode === 'custom';
+  const modes = ['easy', 'normal', 'custom'];
+  for (const mode of modes) {
+    document.getElementById(`tempoMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`)?.classList.toggle('active', tempoMode === mode);
+  }
+  document.getElementById('tempoMinus')?.classList.toggle('disabled', !isCustom);
+  document.getElementById('tempoPlus')?.classList.toggle('disabled', !isCustom);
+}
+
+function applyTempoMode({ preserveCustom = true } = {}) {
+  if (tempoMode === 'easy') {
+    bpm = computeEasyTempo();
+  } else if (tempoMode === 'normal') {
+    bpm = computeNormalTempo();
+  } else if (preserveCustom) {
+    bpm = customTempo;
+  } else {
+    customTempo = bpm;
+  }
+  syncTempoUI();
+  refreshTempoModeUI();
+}
+
+function setTempoMode(mode) {
+  if (tempoMode === mode) {
+    if (mode !== 'custom') applyTempoMode();
+    return;
+  }
+  tempoMode = mode;
+  if (mode === 'custom') {
+    customTempo = bpm;
+    applyTempoMode();
+    return;
+  }
+  applyTempoMode({ preserveCustom: true });
+}
+
+function adjustCustomTempo(delta) {
+  if (tempoMode !== 'custom') return;
+  setTempo(customTempo + delta);
 }
 
 // COUNT-IN
@@ -579,7 +615,6 @@ function refreshChordDisplay() {
   const icons = { grandpiano: '🎹', jazzpiano: '🎹', elecpiano: '🎹', organ: '⛪', pipeorgan: '⛩️', accordion: '🪗', strings: '🎻', brass: '🎺', nylonguitar: '🎸', distguitar: '⚡', steelguitar: '🤠', honkytonk: '🎹', synthpad: '🤖', vibraphone: '🔔', harpsichord: '🎼', marimba: '🌺' };
   document.getElementById('instrIcon').textContent = icons[sound] || '🎹';
   document.getElementById('instrName').innerHTML = (SOUND_NAMES[sound] || sound);
-  refreshThemeMeta();
 }
 
 // Callback quando uno strumento HD finisce di caricare
@@ -597,9 +632,7 @@ function selectTheme(i, keepLoc = false) {
   THEMES[i].sound = selectMainSoundForProfile(profile);
   window.currentBassSound = normalizeBassSound(window.currentBassSound);
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
-  bpm = THEMES[i].tempo;
-  document.getElementById('tempoSlider').value = bpm;
-  document.getElementById('tempoVal').textContent = bpm;
+  applyTempoMode();
   
   // Se l'audio e' gia' inizializzato, carica i campioni
   if (ctx) {
@@ -633,11 +666,6 @@ function doFullRandom() {
   const i = pickNextThemeIndex();
   selectTheme(i, false);
   refreshBassDisplay();
-  const profile = resolveThemeProfile(THEMES[i]);
-  const baseTempo = profile.energy === 'bright' ? 118 : (profile.energy === 'lifted' ? 112 : 106);
-  const nb = Math.round(baseTempo + (Math.random() - 0.5) * 18);
-  setTempo(Math.max(92, Math.min(132, nb)));
-  document.getElementById('tempoSlider').value = bpm;
 }
 
 // STRUTTURA
@@ -748,7 +776,12 @@ function toggleMetronome() {
   btn.textContent = metronomeOn ? 'metronomo ON' : 'metronomo OFF';
 }
 
-function setTempo(v) { bpm = v; document.getElementById('tempoVal').textContent = v; }
+function setTempo(v) {
+  const safeTempo = Math.max(CUSTOM_TEMPO_MIN, Math.min(CUSTOM_TEMPO_MAX, v));
+  bpm = safeTempo;
+  if (tempoMode === 'custom') customTempo = safeTempo;
+  syncTempoUI();
+}
 function setStatus(txt, cls) { const s = document.getElementById('statusBar'); s.textContent = txt; s.className = 'status-bar' + (cls ? ' ' + cls : ''); }
 
 async function togglePlay() {
@@ -829,9 +862,6 @@ window.addEventListener('DOMContentLoaded', () => {
   THEMES[i].sound = selectMainSoundForProfile(profile);
   if (window.selectDrumVariation) window.selectDrumVariation(THEMES[i].perc);
   bassEngine = 0;
-  const baseTempo = profile.energy === 'bright' ? 118 : (profile.energy === 'lifted' ? 112 : 106);
-  bpm = Math.round(Math.max(92, Math.min(132, baseTempo + (Math.random() - 0.5) * 18)));
-  document.getElementById('tempoSlider').value = bpm;
-  document.getElementById('tempoVal').textContent = bpm;
+  applyTempoMode();
   refreshChordDisplay(); newLocationForTheme(i); refreshBassDisplay();
 });
