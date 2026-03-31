@@ -82,7 +82,7 @@ body.sec-rit { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); }
 .app-shell {
   width: min(100%, 560px);
   margin: 0 auto;
-  padding: 12px 12px 20px;
+  padding: 10px 12px 16px;
 }
 
 .topbar {
@@ -90,7 +90,7 @@ body.sec-rit { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); }
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .eyebrow,
@@ -124,7 +124,7 @@ h1 {
   background: rgba(24, 25, 32, 0.88);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 10px;
+  padding: 9px;
   box-shadow: var(--shadow);
 }
 
@@ -133,6 +133,10 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
+}
+
+.scene-line-text.is-flash {
+  animation: statuspulse .45s ease 1;
 }
 
 .transport-card {
@@ -165,7 +169,7 @@ h1 {
   background-size: auto, 8px 8px, 8px 8px, auto;
   background-position: 0 0, calc(100% - 18px) 18px, calc(100% - 12px) 18px, 0 0;
   color: var(--text);
-  min-height: 44px;
+  min-height: 40px;
   padding: 0 38px 0 12px;
   font-size: 13px;
   font-weight: 800;
@@ -191,16 +195,23 @@ h1 {
 .secondary-btn {
   background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
   color: var(--text);
-  min-height: 44px;
+  min-height: 40px;
   padding: 0 12px;
   font-weight: 800;
   white-space: nowrap;
   font-size: 12px;
 }
 
+.icon-btn {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+
 .style-card {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 10px;
   min-height: 62px;
   max-height: 62px;
   padding: 8px 10px;
@@ -299,10 +310,9 @@ h1 {
 .style-hint {
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 9px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.08);
@@ -312,31 +322,65 @@ h1 {
 
 .style-hint-icon {
   flex: 0 0 auto;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
   line-height: 1;
 }
 
-.style-hint-label {
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+.scene-line {
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.scene-line-label {
   text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.scene-line-text {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #f0eadf;
+}
+
+.scene-line-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 14px;
   line-height: 1;
-  white-space: nowrap;
+  cursor: pointer;
 }
 
 .progress-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin: 12px 0 10px;
+  margin: 10px 0 8px;
 }
 
 .progress-block {
   min-height: 62px;
   border-radius: 14px;
-  padding: 10px;
+  padding: 9px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
   display: flex;
@@ -429,7 +473,7 @@ h1 {
   align-items: center;
   padding: 8px 10px;
   border-radius: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--sec, var(--muted));
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.05);
@@ -462,11 +506,15 @@ h1 {
   animation: statuspulse .9s ease 3;
 }
 
+.status-line.is-loading {
+  animation: statusblink .85s ease-in-out infinite;
+}
+
 .countin-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 .countin-beat {
@@ -496,7 +544,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .chord-card {
@@ -572,14 +620,14 @@ h1 {
 }
 
 .transport-card {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .instrument-row-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .instrument-card {
@@ -588,7 +636,7 @@ h1 {
 
 .instrument-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: #e7dfd0;
   font-size: 10px;
 }
@@ -631,7 +679,7 @@ h1 {
 .btn-finale {
   width: 100%;
   min-height: 48px;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   border-radius: 14px;
   background: linear-gradient(135deg, #3a0c06, #7a1c10);
   border: 1px solid #9a2010;
@@ -659,6 +707,11 @@ h1 {
 @keyframes statuspulse {
   0%, 100% { box-shadow: 0 0 0 rgba(255,255,255,0); }
   50% { box-shadow: 0 0 16px rgba(255,255,255,.1); }
+}
+
+@keyframes statusblink {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.38; filter: brightness(1.15); }
 }
 
 @keyframes chordfill {

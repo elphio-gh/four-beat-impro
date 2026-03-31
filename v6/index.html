@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alessandro Rizzo Simulator v6</title>
-  <link rel="stylesheet" href="css/style.css?v=0.6.16">
+  <link rel="stylesheet" href="css/style.css?v=0.6.17">
 </head>
 <body>
   <div class="curt curt-l" id="curtL"></div>
@@ -26,7 +26,7 @@
       <label class="field-label" for="styleSelect">Scegli lo stile</label>
       <div class="picker-row">
         <select id="styleSelect" class="style-select"></select>
-        <button id="randomStyleBtn" class="secondary-btn" type="button">🎲 Stile random</button>
+        <button id="randomStyleBtn" class="secondary-btn icon-btn" type="button" title="Stile random" aria-label="Stile random">🎲</button>
       </div>
     </section>
 
@@ -44,11 +44,16 @@
           </div>
         </div>
         <div class="style-hint" aria-hidden="true">
-          <span class="style-hint-icon">↻</span>
-          <span class="style-hint-label">Nuovi accordi</span>
+          <span class="style-hint-icon">🎲</span>
         </div>
       </div>
     </button>
+
+    <section class="scene-line" aria-label="Scena corrente">
+      <div class="scene-line-label">📍 Scena</div>
+      <div class="scene-line-text" id="sceneText">—</div>
+      <button id="sceneRefreshBtn" class="scene-line-btn" type="button" title="Nuova scena" aria-label="Nuova scena">🎲</button>
+    </section>
 
     <section class="progress-row">
       <div class="progress-block active-intro" id="pbIntro">
@@ -73,7 +78,7 @@
       </div>
     </section>
 
-    <div class="status-line" id="statusText">Pronto</div>
+    <div class="status-line" id="statusText"></div>
 
     <section class="countin-row" aria-label="Count-in beat">
       <span class="countin-beat" id="cb1">1</span>
@@ -122,9 +127,10 @@
     </section>
   </main>
 
-  <script src="js/db-styles.js?v=0.6.16"></script>
-  <script src="js/sampler.js?v=0.6.16"></script>
-  <script src="js/audio-engine.js?v=0.6.16"></script>
-  <script src="js/ui-manager.js?v=0.6.16"></script>
+  <script src="js/db-scenes.js?v=0.6.17"></script>
+  <script src="js/db-styles.js?v=0.6.17"></script>
+  <script src="js/sampler.js?v=0.6.17"></script>
+  <script src="js/audio-engine.js?v=0.6.17"></script>
+  <script src="js/ui-manager.js?v=0.6.17"></script>
 </body>
 </html>

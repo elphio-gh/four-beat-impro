@@ -3,7 +3,7 @@
  * App standalone orientata agli stili, con struttura fissa 2 + 4 + 4 in 4/4.
  */
 
-const VERSION = '0.6.16';
+const VERSION = '0.6.17';
 const INTRO_GIRI = 2;
 const STROFA_GIRI = 4;
 const RIT_GIRI = 4;
@@ -30,6 +30,8 @@ let currentBassSound = 'bass_electric';
 let structureText = 'Intro 1/2';
 let statusSticky = false;
 let lastStructureState = null;
+let loadingStatusDepth = 0;
+let currentScene = '—';
 
 const ENDING_MESSAGES = {
   1: [
@@ -165,12 +167,51 @@ function setStatus(text, tone = '', { sticky = false, force = false, pulse = fal
   if (statusSticky && !force) return;
   const node = byId('statusText');
   node.textContent = text;
-  node.classList.remove('is-good', 'is-warn', 'is-bad', 'is-pulse');
+  node.classList.remove('is-good', 'is-warn', 'is-bad', 'is-pulse', 'is-loading');
   if (tone) {
     node.classList.add(`is-${tone}`);
   }
   if (pulse || tone === 'warn' || tone === 'bad') node.classList.add('is-pulse');
   statusSticky = sticky;
+}
+
+function clearStatus({ force = true } = {}) {
+  setStatus('', '', { force });
+}
+
+function isInstrumentPackReady(name) {
+  const packName = Sampler.normalizeInstrumentName(name);
+  return Boolean(Sampler.instruments[packName] || Sampler.loading[packName]);
+}
+
+function needsCurrentInstrumentLoad() {
+  if (!ctx) return false;
+  const requiredPacks = [
+    currentMainSound,
+    currentBassSound,
+    'kick',
+    'snare',
+    'hihat',
+    'rim',
+    'taiko',
+    'synthdrum',
+    'agogo',
+    'woodblock'
+  ];
+  return requiredPacks.some((name) => !isInstrumentPackReady(name));
+}
+
+async function withLoadingStatus(task, message = 'Caricamento suoni...') {
+  loadingStatusDepth += 1;
+  setStatus(message, 'warn', { sticky: true, force: true });
+  byId('statusText')?.classList.add('is-loading');
+
+  try {
+    return await task();
+  } finally {
+    loadingStatusDepth = Math.max(0, loadingStatusDepth - 1);
+    if (loadingStatusDepth === 0) clearStatus({ force: true });
+  }
 }
 
 function chordOrdinalText(value) {
@@ -184,6 +225,23 @@ function chordOrdinalText(value) {
 
 function pickMessage(pool) {
   return pick(pool) || '';
+}
+
+function pickScene() {
+  if (Array.isArray(globalThis.SCENE_BANK) && globalThis.SCENE_BANK.length) {
+    return pick(globalThis.SCENE_BANK, currentScene) || globalThis.SCENE_BANK[0];
+  }
+  return '—';
+}
+
+function refreshScene({ reroll = true } = {}) {
+  const node = byId('sceneText');
+  if (!node) return;
+  if (reroll || !currentScene || currentScene === '—') currentScene = pickScene();
+  node.classList.remove('is-flash');
+  void node.offsetWidth;
+  node.textContent = currentScene;
+  node.classList.add('is-flash');
 }
 
 function setStyleAccent(style) {
@@ -278,9 +336,19 @@ function setTempo(v) {
   refreshStyleCard();
 }
 
-function setTempoMode(mode) {
+function shouldRestartForTempoJump(previousBpm, nextBpm) {
+  return Math.abs(nextBpm - previousBpm) > 10;
+}
+
+async function setTempoMode(mode) {
+  const previousBpm = bpm;
   if (tempoMode === mode) {
-    if (mode !== 'custom') applyTempoMode();
+    if (mode !== 'custom') {
+      applyTempoMode();
+      if ((isPlaying || isCountingIn) && shouldRestartForTempoJump(previousBpm, bpm)) {
+        await restartFromTop();
+      }
+    }
     return;
   }
   tempoMode = mode;
@@ -290,6 +358,9 @@ function setTempoMode(mode) {
     return;
   }
   applyTempoMode({ preserveCustom: true });
+  if ((isPlaying || isCountingIn) && shouldRestartForTempoJump(previousBpm, bpm)) {
+    await restartFromTop();
+  }
 }
 
 function adjustCustomTempo(delta) {
@@ -466,7 +537,11 @@ function resetTransportUI() {
 }
 
 async function loadCurrentInstruments() {
-  await Sampler.loadStartupPreset(currentMainSound, currentBassSound);
+  if (!needsCurrentInstrumentLoad()) {
+    await Sampler.loadStartupPreset(currentMainSound, currentBassSound);
+    return;
+  }
+  await withLoadingStatus(() => Sampler.loadStartupPreset(currentMainSound, currentBassSound));
 }
 
 function refreshInstrumentSelectors() {
@@ -539,9 +614,7 @@ async function startPlay() {
 
 async function stopAll({ preserveStatus = false } = {}) {
   await hardStop();
-  if (!preserveStatus) {
-    setStatus(`Pronto: ${currentStyle.label}`, '', { force: true });
-  }
+  if (!preserveStatus) clearStatus({ force: true });
 }
 
 async function restartFromTop() {
@@ -559,7 +632,8 @@ async function applyStyle(styleId, { keepStyle = false } = {}) {
     avoidProgressionName: previousProgression,
     avoidVariationId: previousVariation
   });
-  setStatus(`Pronto: ${style.label}`, '', { force: true });
+  refreshScene({ reroll: true });
+  clearStatus({ force: true });
 
   if (isPlaying || isCountingIn) await restartFromTop();
 }
@@ -583,13 +657,21 @@ function toggleMetronome() {
 
 async function selectMainInstrument(value) {
   currentMainSound = value;
-  await Sampler.loadInstrument(currentMainSound);
+  if (!isInstrumentPackReady(currentMainSound) && ctx) {
+    await withLoadingStatus(() => Sampler.loadInstrument(currentMainSound));
+  } else {
+    await Sampler.loadInstrument(currentMainSound);
+  }
   refreshStyleCard();
 }
 
 async function selectBassInstrument(value) {
   currentBassSound = value;
-  await Sampler.loadInstrument(currentBassSound);
+  if (!isInstrumentPackReady(currentBassSound) && ctx) {
+    await withLoadingStatus(() => Sampler.loadInstrument(currentBassSound));
+  } else {
+    await Sampler.loadInstrument(currentBassSound);
+  }
   refreshStyleCard();
 }
 
@@ -626,13 +708,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   byId('randomStyleBtn').addEventListener('click', randomizeStyle);
   byId('styleCard').addEventListener('click', regenerateCurrentStyle);
+  byId('sceneRefreshBtn').addEventListener('click', () => refreshScene({ reroll: true }));
   byId('playBtn').addEventListener('click', handlePlayClick);
   byId('stopBtn').addEventListener('click', stopAll);
   byId('metroBtn').addEventListener('click', toggleMetronome);
   byId('btnEnding').addEventListener('click', armEnding);
-  byId('tempoModeEasy').addEventListener('click', () => setTempoMode('easy'));
-  byId('tempoModeNormal').addEventListener('click', () => setTempoMode('normal'));
-  byId('tempoModeCustom').addEventListener('click', () => setTempoMode('custom'));
+  byId('tempoModeEasy').addEventListener('click', async () => setTempoMode('easy'));
+  byId('tempoModeNormal').addEventListener('click', async () => setTempoMode('normal'));
+  byId('tempoModeCustom').addEventListener('click', async () => setTempoMode('custom'));
   byId('tempoMinus').addEventListener('click', () => adjustCustomTempo(-5));
   byId('tempoPlus').addEventListener('click', () => adjustCustomTempo(5));
   byId('mainInstrumentSelect').addEventListener('change', async (event) => selectMainInstrument(event.target.value));
