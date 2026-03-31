@@ -366,9 +366,9 @@ body.sec-rit    { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); --sec-card: 
 }
 .tempo-bottom-row {
   display: grid;
-  grid-template-columns: auto minmax(150px, 1fr);
+  grid-template-columns: auto minmax(118px, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .tempo-adj {
   background: var(--bg2); border: 1.5px solid var(--bg3);
@@ -388,8 +388,10 @@ body.sec-rit    { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); --sec-card: 
   width: 100%;
   min-width: 0;
   height: 34px;
-  font-size: 10px;
-  padding: 0 10px;
+  font-size: 9px;
+  padding: 0 8px;
+  letter-spacing: .04em;
+  white-space: nowrap;
 }
 
 /* Difesa contro residui vecchi in cache/layout */
@@ -408,9 +410,6 @@ body.sec-rit    { --sec: #a78bfa; --sec-glow: rgba(167,139,250,.4); --sec-card: 
   }
   .tempo-lbl {
     text-align: center;
-  }
-  .tempo-bottom-row {
-    grid-template-columns: 1fr;
   }
 }
 
