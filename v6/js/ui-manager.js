@@ -3,7 +3,7 @@
  * App standalone orientata agli stili, con struttura fissa 2 + 4 + 4 in 4/4.
  */
 
-const VERSION = '0.6.3';
+const VERSION = '0.6.4';
 const INTRO_GIRI = 2;
 const STROFA_GIRI = 4;
 const RIT_GIRI = 4;
