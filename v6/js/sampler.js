@@ -191,11 +191,60 @@ const SAMPLE_ALIASES = {
   marimba: 'marimba'
 };
 
+const VOICE_PROFILE = {
+  notePeakLimit: 0.9,
+  drumPeakLimit: 1.0,
+  noteWetSend: 0.42,
+  drumWetSend: 0.24,
+  noteStopTail: 0.14,
+  drumStopTail: 0.28,
+  maxActiveVoices: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 18 : 32
+};
+
+const GENERAL_NOTE_PLAYBACK_PROFILE = {
+  attack: 0.016,
+  releaseFloor: 0.3,
+  peakScale: 0.92,
+  maxStretchSemitones: 7,
+  stretchPeakPenalty: 0.05,
+  stretchAttackBoost: 0.003
+};
+
+const NOTE_PLAYBACK_PROFILE = {
+  elecpiano: { attack: 0.02, releaseFloor: 0.26, peakScale: 0.9 },
+  strings: { attack: 0.028, releaseFloor: 0.24, peakScale: 0.82 },
+  synthpad: { attack: 0.032, releaseFloor: 0.22, peakScale: 0.78 }
+};
+
 const Sampler = {
   instruments: {},
   loading: {},
   activeSources: new Set(),
   baseUrl: '../v5/samples/',
+
+  trimVoices(limit = VOICE_PROFILE.maxActiveVoices) {
+    const overflow = this.activeSources.size - limit;
+    if (overflow < 0) return;
+
+    let trimmed = 0;
+    for (const voice of this.activeSources) {
+      try {
+        const now = ctx?.currentTime ?? 0;
+        voice.gain?.gain.cancelScheduledValues(now);
+        voice.gain?.gain.setValueAtTime(Math.max(voice.gain?.gain.value ?? 0.0001, 0.0001), now);
+        voice.gain?.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+        voice.source?.stop(now + 0.02);
+      } catch (_err) {
+        try {
+          voice.source?.stop();
+        } catch (_err2) {
+          // no-op
+        }
+      }
+      trimmed++;
+      if (trimmed > overflow) break;
+    }
+  },
 
   normalizeInstrumentName(name) {
     return SAMPLE_PACKS[name] ? name : (SAMPLE_ALIASES[name] || 'grandpiano');
@@ -288,23 +337,30 @@ const Sampler = {
     }
 
     const gain = ctx.createGain();
-    const peakVol = Math.min(volume * inst.gain, 1.5);
+    const wetSend = ctx.createGain();
+    wetSend.gain.value = options.dryOnly ? 0 : VOICE_PROFILE.drumWetSend;
+    const peakLimit = options.peakLimit || VOICE_PROFILE.drumPeakLimit;
+    const outputGain = options.outputGain || 1;
+    const peakVol = Math.min(volume * inst.gain * outputGain, peakLimit);
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(peakVol, time + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + Math.max(duration, 0.05) + 0.9);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + Math.max(duration, 0.05) + 0.55);
 
+    const destination = options.destination || dryGain;
     signalNode.connect(gain);
-    gain.connect(dryGain);
-    gain.connect(revNode);
+    gain.connect(destination);
+    gain.connect(wetSend);
+    wetSend.connect(revNode);
 
-    const voice = { source, gain };
+    this.trimVoices();
+    const voice = { source, gain, wetSend };
     this.activeSources.add(voice);
     source.onended = () => {
       this.activeSources.delete(voice);
     };
 
     source.start(time);
-    source.stop(time + Math.max(duration, 0.05) + 1.3);
+    source.stop(time + Math.max(duration, 0.05) + VOICE_PROFILE.drumStopTail);
     return true;
   },
 
@@ -321,11 +377,25 @@ const Sampler = {
     source.playbackRate.setValueAtTime(Math.pow(2, (midi - sample.midi) / 12), time);
 
     const gain = ctx.createGain();
+    const wetSend = ctx.createGain();
+    wetSend.gain.value = VOICE_PROFILE.noteWetSend;
     const safeDur = Math.max(duration, 0.1);
-    const peakVol = Math.min(volume * inst.gain, 1.1);
-    const attack = 0.012;
-    const holdTime = Math.max(time + attack, time + safeDur - 0.06);
-    const release = Math.max(inst.release || 0.3, 0.36);
+    const playbackProfile = NOTE_PLAYBACK_PROFILE[packName] || {};
+    const semitoneDistance = Math.abs(midi - sample.midi);
+    const stretchOverflow = Math.max(0, semitoneDistance - GENERAL_NOTE_PLAYBACK_PROFILE.maxStretchSemitones);
+    const stretchPeakPenalty = stretchOverflow * GENERAL_NOTE_PLAYBACK_PROFILE.stretchPeakPenalty;
+    const peakScale = Math.max(
+      0.62,
+      (playbackProfile.peakScale || GENERAL_NOTE_PLAYBACK_PROFILE.peakScale) - stretchPeakPenalty
+    );
+    const peakVol = Math.min(volume * inst.gain * peakScale, VOICE_PROFILE.notePeakLimit);
+    const attack = (
+      playbackProfile.attack ||
+      GENERAL_NOTE_PLAYBACK_PROFILE.attack
+    ) + (stretchOverflow * GENERAL_NOTE_PLAYBACK_PROFILE.stretchAttackBoost);
+    const holdTime = Math.max(time + attack, time + safeDur - 0.05);
+    const releaseFloor = playbackProfile.releaseFloor || GENERAL_NOTE_PLAYBACK_PROFILE.releaseFloor;
+    const release = Math.max(inst.release || 0.3, releaseFloor);
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(peakVol, time + attack);
     gain.gain.setValueAtTime(peakVol, holdTime);
@@ -333,16 +403,18 @@ const Sampler = {
 
     source.connect(gain);
     gain.connect(dryGain);
-    gain.connect(revNode);
+    gain.connect(wetSend);
+    wetSend.connect(revNode);
 
-    const voice = { source, gain };
+    this.trimVoices();
+    const voice = { source, gain, wetSend };
     this.activeSources.add(voice);
     source.onended = () => {
       this.activeSources.delete(voice);
     };
 
     source.start(time);
-    source.stop(time + safeDur + release + 0.18);
+    source.stop(time + safeDur + release + VOICE_PROFILE.noteStopTail);
     return true;
   },
 

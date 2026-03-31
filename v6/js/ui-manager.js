@@ -3,7 +3,7 @@
  * App standalone orientata agli stili, con struttura fissa 2 + 4 + 4 in 4/4.
  */
 
-const VERSION = '0.6.4';
+const VERSION = '0.6.16';
 const INTRO_GIRI = 2;
 const STROFA_GIRI = 4;
 const RIT_GIRI = 4;
@@ -231,7 +231,8 @@ function pickInstrument(pool, fallback, avoidValue = null) {
 function refreshStyleCard() {
   byId('styleIcon').textContent = currentStyle.icon;
   byId('styleName').textContent = currentStyle.label;
-  byId('styleSubtitle').textContent = currentStyle.subtitle;
+  byId('styleCard').title = currentStyle.subtitle;
+  byId('styleCard').setAttribute('aria-label', `${currentStyle.label}. ${currentStyle.subtitle}`);
   byId('variationName').textContent = currentVariation.label;
   byId('tempoBadge').textContent = `${bpm} BPM`;
   byId('styleMeta').textContent = `${SOUND_NAMES[currentMainSound]} + ${SOUND_NAMES[currentBassSound]}`;
@@ -347,13 +348,42 @@ function highlightBeat(beatInBar) {
   byId(`cb${beatInBar + 1}`).classList.add('active');
 }
 
-function highlightChord(index) {
-  for (let i = 0; i < 4; i++) byId(`chordCard${i}`)?.classList.remove('active');
-  byId(`chordCard${index}`)?.classList.add('active');
+function highlightChord(index, fillMs = 0) {
+  if (index === 0) {
+    for (let i = 0; i < 4; i++) {
+      const node = byId(`chordCard${i}`);
+      node?.classList.remove('active', 'is-filling', 'is-filled');
+      if (node) node.style.setProperty('--chord-fill-ms', '0ms');
+    }
+  } else {
+    for (let i = 0; i < 4; i++) {
+      const node = byId(`chordCard${i}`);
+      if (!node) continue;
+
+      node.classList.remove('active', 'is-filling');
+      node.classList.toggle('is-filled', i < index);
+      node.style.setProperty('--chord-fill-ms', '0ms');
+    }
+  }
+
+  const activeNode = byId(`chordCard${index}`);
+  if (!activeNode) return;
+
+  activeNode.classList.remove('is-filled');
+  activeNode.classList.add('active');
+  if (fillMs > 0) {
+    activeNode.style.setProperty('--chord-fill-ms', `${Math.max(120, Math.round(fillMs))}ms`);
+    void activeNode.offsetWidth;
+    activeNode.classList.add('is-filling');
+  }
 }
 
 function clearChordHighlights() {
-  for (let i = 0; i < 4; i++) byId(`chordCard${i}`)?.classList.remove('active');
+  for (let i = 0; i < 4; i++) {
+    const node = byId(`chordCard${i}`);
+    node?.classList.remove('active', 'is-filling');
+    if (node) node.style.setProperty('--chord-fill-ms', '0ms');
+  }
 }
 
 function getActiveChordOrdinal() {
@@ -507,9 +537,11 @@ async function startPlay() {
   });
 }
 
-async function stopAll() {
+async function stopAll({ preserveStatus = false } = {}) {
   await hardStop();
-  setStatus(`Pronto: ${currentStyle.label}`, '', { force: true });
+  if (!preserveStatus) {
+    setStatus(`Pronto: ${currentStyle.label}`, '', { force: true });
+  }
 }
 
 async function restartFromTop() {

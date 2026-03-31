@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alessandro Rizzo Simulator v6</title>
-  <link rel="stylesheet" href="css/style.css?v=0.6.4">
+  <link rel="stylesheet" href="css/style.css?v=0.6.16">
 </head>
 <body>
   <div class="curt curt-l" id="curtL"></div>
@@ -18,7 +18,7 @@
       </div>
       <div class="version-block">
         <div class="version-label">Versione diretta</div>
-        <div class="version-value" id="versionText">0.6.4</div>
+        <div class="version-value" id="versionText">0.6.16</div>
       </div>
     </header>
 
@@ -31,18 +31,22 @@
     </section>
 
     <button id="styleCard" class="style-card compact" type="button">
-      <div class="style-card-top">
+      <div class="style-card-rail">
         <div class="style-icon" id="styleIcon">🎷</div>
         <div class="style-copy">
-          <div class="style-name" id="styleName">Jazz Swing</div>
-          <div class="style-subtitle" id="styleSubtitle">Scena nel club, fumo e battute secche.</div>
+          <div class="style-headline">
+            <div class="style-name" id="styleName">Jazz Swing</div>
+            <span class="style-pill style-pill-tempo" id="tempoBadge">138 BPM</span>
+          </div>
+          <div class="style-detail-row">
+            <span class="style-pill" id="variationName">Feather Swing</span>
+            <span class="style-meta-inline" id="styleMeta">Jazz Piano + Acoustic Bass</span>
+          </div>
         </div>
-        <div class="style-hint">premi per nuovi accordi e groove</div>
-      </div>
-      <div class="style-badges">
-        <span class="badge" id="variationName">Feather Swing</span>
-        <span class="badge" id="tempoBadge">138 BPM</span>
-        <span class="badge" id="styleMeta">Jazz Piano + Acoustic Bass</span>
+        <div class="style-hint" aria-hidden="true">
+          <span class="style-hint-icon">↻</span>
+          <span class="style-hint-label">Nuovi accordi</span>
+        </div>
       </div>
     </button>
 
@@ -118,9 +122,9 @@
     </section>
   </main>
 
-  <script src="js/db-styles.js?v=0.6.4"></script>
-  <script src="js/sampler.js?v=0.6.4"></script>
-  <script src="js/audio-engine.js?v=0.6.4"></script>
-  <script src="js/ui-manager.js?v=0.6.4"></script>
+  <script src="js/db-styles.js?v=0.6.16"></script>
+  <script src="js/sampler.js?v=0.6.16"></script>
+  <script src="js/audio-engine.js?v=0.6.16"></script>
+  <script src="js/ui-manager.js?v=0.6.16"></script>
 </body>
 </html>

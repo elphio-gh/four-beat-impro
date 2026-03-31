@@ -3,26 +3,28 @@
  * Motore semplificato, guidato dagli stili e dalla struttura fissa 2+4+4.
  */
 
-let ctx = null, masterGain, dryGain, revGain, revNode;
+let ctx = null, masterGain, dryGain, revGain, revNode, metronomeGain;
 let nextBeatTime = 0, schedTimer = null;
 let endingAtTime = null;
-const LOOK_AHEAD = 0.22;
-const TICK_MS = 20;
+const IS_MOBILE_AUDIO = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const LOOK_AHEAD = IS_MOBILE_AUDIO ? 0.3 : 0.22;
+const TICK_MS = IS_MOBILE_AUDIO ? 30 : 20;
 const UI_LEAD_MS = 12;
 
 const MIX_PROFILE = {
-  master: 0.96,
-  dry: 0.76,
-  reverb: 0.18,
+  master: 0.84,
+  dry: 0.7,
+  reverb: 0.12,
+  metronomeBus: 1.9,
   compressor: {
-    threshold: -20,
-    knee: 8,
-    ratio: 5,
-    attack: 0.002,
-    release: 0.16
+    threshold: -24,
+    knee: 10,
+    ratio: 7,
+    attack: 0.003,
+    release: 0.2
   },
-  metronomeLead: 4.2,
-  metronomeGhost: 2.2
+  metronomeLead: 5.8,
+  metronomeGhost: 3.2
 };
 
 const DRUM_VOICES = {
@@ -54,13 +56,17 @@ const DRUM_STYLE_KITS = {
 
 function initAudio() {
   if (ctx) return;
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx = new (window.AudioContext || window.webkitAudioContext)({
+    latencyHint: IS_MOBILE_AUDIO ? 'playback' : 'interactive'
+  });
   masterGain = ctx.createGain();
   masterGain.gain.value = MIX_PROFILE.master;
   dryGain = ctx.createGain();
   dryGain.gain.value = MIX_PROFILE.dry;
   revGain = ctx.createGain();
   revGain.gain.value = MIX_PROFILE.reverb;
+  metronomeGain = ctx.createGain();
+  metronomeGain.gain.value = MIX_PROFILE.metronomeBus;
 
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = MIX_PROFILE.compressor.threshold;
@@ -73,13 +79,14 @@ function initAudio() {
   dryGain.connect(comp);
   revNode.connect(revGain);
   revGain.connect(comp);
+  metronomeGain.connect(masterGain);
   comp.connect(masterGain);
   masterGain.connect(ctx.destination);
 }
 
 function buildReverb() {
   const cv = ctx.createConvolver();
-  const len = ctx.sampleRate * 2.2;
+  const len = Math.floor(ctx.sampleRate * (IS_MOBILE_AUDIO ? 0.9 : 2.2));
   const buf = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let c = 0; c < 2; c++) {
     const d = buf.getChannelData(c);
@@ -94,8 +101,18 @@ function clickSound(t, vol = 0.65) {
 }
 
 function metroClick(t, isOne) {
-  Sampler.playDrum('rim', 76, t, 0.04, isOne ? MIX_PROFILE.metronomeLead : MIX_PROFILE.metronomeGhost);
-  if (isOne) Sampler.playDrum('rim', 76, t + 0.012, 0.03, MIX_PROFILE.metronomeGhost);
+  Sampler.playDrum('woodblock', 76, t, 0.05, isOne ? MIX_PROFILE.metronomeLead : MIX_PROFILE.metronomeGhost, {
+    dryOnly: true,
+    peakLimit: 1.6,
+    outputGain: 1.45,
+    destination: metronomeGain
+  });
+  if (isOne) Sampler.playDrum('agogo', 84, t + 0.012, 0.045, MIX_PROFILE.metronomeGhost, {
+    dryOnly: true,
+    peakLimit: 1.45,
+    outputGain: 1.3,
+    destination: metronomeGain
+  });
 }
 
 function doCountIn(onDone) {
@@ -164,8 +181,8 @@ function bNotes(r, t) {
 function getInstrumentProfile(sound) {
   if (['nylonguitar', 'steelguitar', 'distguitar'].includes(sound)) {
     return {
-      sustainFactor: 0.62,
-      strumStep: 0.018,
+      sustainFactor: IS_MOBILE_AUDIO ? 0.5 : 0.62,
+      strumStep: IS_MOBILE_AUDIO ? 0.014 : 0.018,
       voiceTransform(notes) {
         const voiced = [...notes].sort((a, b) => a - b);
         if (voiced.length) voiced[0] -= 12;
@@ -179,7 +196,7 @@ function getInstrumentProfile(sound) {
   }
 
   return {
-    sustainFactor: 1,
+    sustainFactor: IS_MOBILE_AUDIO ? 0.82 : 1,
     strumStep: 0,
     voiceTransform(notes) {
       return notes;
@@ -190,10 +207,11 @@ function getInstrumentProfile(sound) {
 function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
   const profile = getInstrumentProfile(sound);
   const voicedNotes = profile.voiceTransform([...notes]);
+  const limitedNotes = IS_MOBILE_AUDIO ? voicedNotes.slice(0, 3) : voicedNotes;
   const noteDur = Math.max(0.14, dur * profile.sustainFactor);
 
-  if (withBass) Sampler.playNote(sound, voicedNotes[0] - 12, t0, noteDur, 0.18 * volScale);
-  voicedNotes.forEach((note, index) => {
+  if (withBass) Sampler.playNote(sound, limitedNotes[0] - 12, t0, noteDur, 0.18 * volScale);
+  limitedNotes.forEach((note, index) => {
     Sampler.playNote(
       sound,
       note,
@@ -284,7 +302,7 @@ function scheduleBeat(beat, t) {
     const energy = currentSectionEnergy();
     playBassBar(chordDef, chordDef.r + 12, t, spb, energy);
     playChordBar(chordDef, t, spb, energy);
-    schedUI(() => highlightChord(barIndex), t);
+    schedUI(() => highlightChord(barIndex, spb * 4 * 1000), t);
   }
 
   schedUI(() => highlightBeat(beatInBar), t);
@@ -312,11 +330,11 @@ function schedEnding(startT) {
   masterGain.gain.setValueAtTime(Math.min(0.8, MIX_PROFILE.master), startT);
   playChordAt(notes, startT, spb * 0.9, currentMainSound, 1.0, false);
   schedUI(() => {
-    highlightChord(0);
+    highlightChord(0, spb * 1000);
     highlightBeat(0);
   }, startT);
   schedUI(() => {
-    stopAll();
+    stopAll({ preserveStatus: true });
     endingAtTime = null;
   }, startT + spb);
 }
