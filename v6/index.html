@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alessandro Rizzo Simulator v6</title>
-  <link rel="stylesheet" href="css/style.css?v=0.6.1">
+  <link rel="stylesheet" href="css/style.css?v=0.6.3">
 </head>
 <body>
+  <div class="curt curt-l" id="curtL"></div>
+  <div class="curt curt-r" id="curtR"></div>
+
   <main class="app-shell">
     <header class="topbar">
       <div>
@@ -15,7 +18,7 @@
       </div>
       <div class="version-block">
         <div class="version-label">Versione diretta</div>
-        <div class="version-value" id="versionText">0.6.0</div>
+        <div class="version-value" id="versionText">0.6.3</div>
       </div>
     </header>
 
@@ -34,7 +37,7 @@
           <div class="style-name" id="styleName">Jazz Swing</div>
           <div class="style-subtitle" id="styleSubtitle">Scena nel club, fumo e battute secche.</div>
         </div>
-        <div class="style-hint">rigenera</div>
+        <div class="style-hint">premi per nuovi accordi e groove</div>
       </div>
       <div class="style-badges">
         <span class="badge" id="variationName">Feather Swing</span>
@@ -46,15 +49,23 @@
     <section class="progress-row">
       <div class="progress-block active-intro" id="pbIntro">
         <div class="progress-lbl">Intro</div>
-        <div class="progress-val" id="pvIntro">1 / 2</div>
+        <div class="progress-val" id="pvIntro">
+          <span class="progress-cur">1</span>
+          <span class="progress-sep">/</span>
+          <span class="progress-tot">2</span>
+        </div>
       </div>
       <div class="progress-block" id="pbStrofa">
         <div class="progress-lbl">Strofa</div>
-        <div class="progress-val" id="pvStrofa">—</div>
+        <div class="progress-val is-idle" id="pvStrofa">
+          <span class="progress-idle">—</span>
+        </div>
       </div>
       <div class="progress-block" id="pbRit">
         <div class="progress-lbl">Rit</div>
-        <div class="progress-val" id="pvRit">—</div>
+        <div class="progress-val is-idle" id="pvRit">
+          <span class="progress-idle">—</span>
+        </div>
       </div>
     </section>
 
@@ -71,11 +82,11 @@
 
     <section class="instrument-row-split">
       <div class="instrument-card">
-        <label class="field-label" for="mainInstrumentSelect">Accordi</label>
+        <label class="field-label instrument-label" for="mainInstrumentSelect">Cambia strumento accordi</label>
         <select id="mainInstrumentSelect" class="style-select instrument-select"></select>
       </div>
       <div class="instrument-card">
-        <label class="field-label" for="bassInstrumentSelect">Basso</label>
+        <label class="field-label instrument-label" for="bassInstrumentSelect">Cambia strumento basso</label>
         <select id="bassInstrumentSelect" class="style-select instrument-select"></select>
       </div>
     </section>
@@ -102,14 +113,14 @@
           <span class="tempo-num" id="tempoVal">120</span>
           <button class="tempo-adj" id="tempoPlus" type="button">+</button>
         </div>
-        <button id="metroBtn" class="metro-btn" type="button">Metronomo OFF</button>
+        <button id="metroBtn" class="metro-btn" type="button">Attiva metronomo</button>
       </div>
     </section>
   </main>
 
-  <script src="js/db-styles.js?v=0.6.1"></script>
-  <script src="js/sampler.js?v=0.6.1"></script>
-  <script src="js/audio-engine.js?v=0.6.1"></script>
-  <script src="js/ui-manager.js?v=0.6.1"></script>
+  <script src="js/db-styles.js?v=0.6.3"></script>
+  <script src="js/sampler.js?v=0.6.3"></script>
+  <script src="js/audio-engine.js?v=0.6.3"></script>
+  <script src="js/ui-manager.js?v=0.6.3"></script>
 </body>
 </html>

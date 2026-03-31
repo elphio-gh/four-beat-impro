@@ -11,6 +11,12 @@ const SAMPLE_PACKS = {
     release: 0.35,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  jazzpiano: {
+    kind: 'pitched',
+    gain: 1.95,
+    release: 0.32,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   elecpiano: {
     kind: 'pitched',
     gain: 1.8,
@@ -21,6 +27,12 @@ const SAMPLE_PACKS = {
     kind: 'pitched',
     gain: 1.6,
     release: 0.18,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  pipeorgan: {
+    kind: 'pitched',
+    gain: 1.7,
+    release: 0.3,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   accordion: {
@@ -53,6 +65,18 @@ const SAMPLE_PACKS = {
     release: 0.26,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  harpsichord: {
+    kind: 'pitched',
+    gain: 1.45,
+    release: 0.16,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  synthpad: {
+    kind: 'pitched',
+    gain: 1.5,
+    release: 0.55,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   marimba: {
     kind: 'pitched',
     gain: 1.55,
@@ -65,10 +89,34 @@ const SAMPLE_PACKS = {
     release: 0.24,
     samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  steelguitar: {
+    kind: 'pitched',
+    gain: 1.45,
+    release: 0.22,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  distguitar: {
+    kind: 'pitched',
+    gain: 1.35,
+    release: 0.18,
+    samples: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   bass_electric: {
     kind: 'pitched',
     gain: 1.2,
     release: 0.18,
+    samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_pick: {
+    kind: 'pitched',
+    gain: 1.18,
+    release: 0.17,
+    samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_slap: {
+    kind: 'pitched',
+    gain: 1.12,
+    release: 0.14,
     samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
   bass_acoustic: {
@@ -86,6 +134,12 @@ const SAMPLE_PACKS = {
   bass_synth: {
     kind: 'pitched',
     gain: 1.35,
+    release: 0.16,
+    samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_sub: {
+    kind: 'pitched',
+    gain: 1.45,
     release: 0.16,
     samples: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
@@ -108,17 +162,31 @@ const SAMPLE_PACKS = {
     kind: 'oneshot',
     gain: 0.25,
     samples: ['E5']
+  },
+  taiko: {
+    kind: 'oneshot',
+    gain: 0.3,
+    samples: ['C2']
+  },
+  synthdrum: {
+    kind: 'oneshot',
+    gain: 0.24,
+    samples: ['C2']
+  },
+  agogo: {
+    kind: 'oneshot',
+    gain: 0.2,
+    samples: ['C6']
+  },
+  woodblock: {
+    kind: 'oneshot',
+    gain: 0.2,
+    samples: ['E5']
   }
 };
 
 const SAMPLE_ALIASES = {
-  jazzpiano: 'vibraphone',
-  pipeorgan: 'organ',
-  synthpad: 'organ',
   honkytonk: 'honkytonk',
-  harpsichord: 'grandpiano',
-  distguitar: 'elecpiano',
-  steelguitar: 'elecpiano',
   vibraphone: 'vibraphone',
   marimba: 'marimba'
 };
@@ -188,7 +256,7 @@ const Sampler = {
   },
 
   async loadDrums() {
-    await Promise.all(['kick', 'snare', 'hihat', 'rim'].map((name) => this.loadInstrument(name)));
+    await Promise.all(['kick', 'snare', 'hihat', 'rim', 'taiko', 'synthdrum', 'agogo', 'woodblock'].map((name) => this.loadInstrument(name)));
   },
 
   async fetchAudioBuffer(url) {

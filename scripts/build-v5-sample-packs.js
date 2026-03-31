@@ -11,12 +11,20 @@ const PACKS = {
     source: 'acoustic_grand_piano',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  jazzpiano: {
+    source: 'bright_acoustic_piano',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   elecpiano: {
     source: 'electric_piano_1',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   organ: {
     source: 'percussive_organ',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  pipeorgan: {
+    source: 'church_organ',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
   accordion: {
@@ -39,6 +47,14 @@ const PACKS = {
     source: 'honkytonk_piano',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
   },
+  harpsichord: {
+    source: 'harpsichord',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  synthpad: {
+    source: 'string_ensemble_1',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
   marimba: {
     source: 'marimba',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
@@ -46,6 +62,26 @@ const PACKS = {
   nylonguitar: {
     source: 'acoustic_guitar_nylon',
     notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  steelguitar: {
+    source: 'acoustic_guitar_steel',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  distguitar: {
+    source: 'distortion_guitar',
+    notes: ['C4', 'F4', 'Bb4', 'D5', 'G5', 'C6']
+  },
+  bass_pick: {
+    source: 'electric_bass_pick',
+    notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_slap: {
+    source: 'slap_bass_1',
+    notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
+  },
+  bass_sub: {
+    source: 'synth_bass_2',
+    notes: ['C3', 'F3', 'Bb3', 'D4', 'G4', 'C5']
   },
   bass_electric: {
     source: 'electric_bass_finger',
@@ -77,6 +113,22 @@ const PACKS = {
   },
   rim: {
     source: 'acoustic_rim',
+    notes: ['E5']
+  },
+  taiko: {
+    source: 'taiko_drum',
+    notes: ['C2']
+  },
+  synthdrum: {
+    source: 'synth_drum',
+    notes: ['C2']
+  },
+  agogo: {
+    source: 'agogo',
+    notes: ['C6']
+  },
+  woodblock: {
+    source: 'woodblock',
     notes: ['E5']
   }
 };

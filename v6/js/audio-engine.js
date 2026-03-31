@@ -5,8 +5,10 @@
 
 let ctx = null, masterGain, dryGain, revGain, revNode;
 let nextBeatTime = 0, schedTimer = null;
-const LOOK_AHEAD = 0.14;
-const TICK_MS = 25;
+let endingAtTime = null;
+const LOOK_AHEAD = 0.22;
+const TICK_MS = 20;
+const UI_LEAD_MS = 12;
 
 const MIX_PROFILE = {
   master: 0.96,
@@ -28,6 +30,26 @@ const DRUM_VOICES = {
   snare: { sample: 'snare', midi: 48, duration: 0.22, volume: 0.28 },
   hihat: { sample: 'hihat', midi: 84, duration: 0.07, openDuration: 0.38, volume: 0.15 },
   rim: { sample: 'rim', midi: 76, duration: 0.05, volume: 0.24 }
+};
+
+const DRUM_STYLE_KITS = {
+  jazz_swing: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'rim' },
+  reggae: { kick: 'kick', snare: 'rim', hihat: 'agogo', rim: 'woodblock' },
+  ska: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'woodblock' },
+  bossa_nova: { kick: 'kick', snare: 'woodblock', hihat: 'agogo', rim: 'woodblock' },
+  funk: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'woodblock' },
+  blues_shuffle: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'rim' },
+  pop_rock: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'rim' },
+  disco_70s: { kick: 'kick', snare: 'synthdrum', hihat: 'hihat', rim: 'agogo' },
+  hiphop_boom_bap: { kick: 'synthdrum', snare: 'snare', hihat: 'woodblock', rim: 'rim' },
+  punk_rock: { kick: 'taiko', snare: 'snare', hihat: 'hihat', rim: 'rim' },
+  country_bluegrass: { kick: 'kick', snare: 'woodblock', hihat: 'agogo', rim: 'woodblock' },
+  motown_soul: { kick: 'kick', snare: 'synthdrum', hihat: 'hihat', rim: 'rim' },
+  salsa_montuno: { kick: 'kick', snare: 'woodblock', hihat: 'agogo', rim: 'woodblock' },
+  gospel: { kick: 'kick', snare: 'snare', hihat: 'hihat', rim: 'agogo' },
+  synthwave_80s: { kick: 'synthdrum', snare: 'synthdrum', hihat: 'woodblock', rim: 'agogo' },
+  tango: { kick: 'taiko', snare: 'woodblock', hihat: 'agogo', rim: 'woodblock' },
+  indie_folk: { kick: 'kick', snare: 'woodblock', hihat: 'agogo', rim: 'woodblock' }
 };
 
 function initAudio() {
@@ -97,15 +119,21 @@ function doCountIn(onDone) {
 
 let countInTimers = [];
 function schedUI(fn, audioTime) {
-  const delay = (audioTime - ctx.currentTime) * 1000;
-  countInTimers.push(setTimeout(fn, Math.max(0, delay)));
+  const delay = Math.max(0, (audioTime - ctx.currentTime) * 1000 - UI_LEAD_MS);
+  const timer = setTimeout(() => {
+    countInTimers = countInTimers.filter((id) => id !== timer);
+    fn();
+  }, delay);
+  countInTimers.push(timer);
 }
 
 function getDrumVoiceConfig(name, open = false) {
   const base = DRUM_VOICES[name];
+  const styleKit = DRUM_STYLE_KITS[currentStyle?.id] || {};
+  const styleSample = styleKit[name] || base.sample;
   const duration = open ? (base.openDuration || base.duration) : base.duration;
   return {
-    sample: base.sample,
+    sample: styleSample,
     midi: base.midi,
     duration,
     volume: base.volume
@@ -133,9 +161,47 @@ function bNotes(r, t) {
   return CHORD_INT[t].map((interval) => r + interval);
 }
 
+function getInstrumentProfile(sound) {
+  if (['nylonguitar', 'steelguitar', 'distguitar'].includes(sound)) {
+    return {
+      sustainFactor: 0.62,
+      strumStep: 0.018,
+      voiceTransform(notes) {
+        const voiced = [...notes].sort((a, b) => a - b);
+        if (voiced.length) voiced[0] -= 12;
+        if (sound === 'distguitar' && voiced.length >= 3) {
+          // Distortion reads better with a wider, power-chord-like shape.
+          voiced[1] = voiced[1] + 12;
+        }
+        return voiced;
+      }
+    };
+  }
+
+  return {
+    sustainFactor: 1,
+    strumStep: 0,
+    voiceTransform(notes) {
+      return notes;
+    }
+  };
+}
+
 function playChordAt(notes, t0, dur, sound, volScale = 1.0, withBass = false) {
-  if (withBass) Sampler.playNote(sound, notes[0] - 12, t0, dur, 0.18 * volScale);
-  notes.forEach((note, index) => Sampler.playNote(sound, note, t0, dur, (index === 0 ? 0.5 : 0.4) * volScale));
+  const profile = getInstrumentProfile(sound);
+  const voicedNotes = profile.voiceTransform([...notes]);
+  const noteDur = Math.max(0.14, dur * profile.sustainFactor);
+
+  if (withBass) Sampler.playNote(sound, voicedNotes[0] - 12, t0, noteDur, 0.18 * volScale);
+  voicedNotes.forEach((note, index) => {
+    Sampler.playNote(
+      sound,
+      note,
+      t0 + index * profile.strumStep,
+      noteDur,
+      (index === 0 ? 0.5 : 0.4) * volScale
+    );
+  });
 }
 
 function playChordBar(chordDef, t0, spb, volScale = 1.0) {
@@ -149,10 +215,42 @@ function playChordBar(chordDef, t0, spb, volScale = 1.0) {
   });
 }
 
-function playBassBar(rootMidi, t0, spb, volScale = 1.0) {
+function buildBassTargets(chordDef, rootMidi) {
+  const chordIntervals = CHORD_INT[chordDef.t] || CHORD_INT.maj;
+  const octaves = [-24, -12, 0, 12];
+  const targets = [];
+  octaves.forEach((octave) => {
+    chordIntervals.forEach((interval) => {
+      targets.push(rootMidi + octave + interval);
+    });
+  });
+  return [...new Set(targets)].sort((a, b) => a - b);
+}
+
+function resolveBassMidi(chordDef, rootMidi, semitoneHint) {
+  const targetMidi = rootMidi + semitoneHint;
+  const targets = buildBassTargets(chordDef, rootMidi);
+  let bestMidi = targets[0];
+  let bestDistance = Infinity;
+
+  targets.forEach((candidate) => {
+    const distance = Math.abs(candidate - targetMidi);
+    const directionPenalty = semitoneHint < 0 && candidate > rootMidi ? 0.35 : 0;
+    const weightedDistance = distance + directionPenalty;
+    if (weightedDistance < bestDistance) {
+      bestDistance = weightedDistance;
+      bestMidi = candidate;
+    }
+  });
+
+  return bestMidi;
+}
+
+function playBassBar(chordDef, rootMidi, t0, spb, volScale = 1.0) {
   const pattern = currentVariation?.bassPattern?.length ? currentVariation.bassPattern : [[0, -12, 0.5]];
   pattern.forEach(([offset, semitones, length = 0.42]) => {
-    Sampler.playNote(currentBassSound, rootMidi + semitones, t0 + offset * spb, spb * length, 0.26 * volScale);
+    const bassMidi = resolveBassMidi(chordDef, rootMidi, semitones);
+    Sampler.playNote(currentBassSound, bassMidi, t0 + offset * spb, spb * length, 0.26 * volScale);
   });
 }
 
@@ -163,7 +261,7 @@ function currentSectionEnergy() {
 }
 
 function scheduler() {
-  while (nextBeatTime < ctx.currentTime + LOOK_AHEAD) {
+  while (nextBeatTime < ctx.currentTime + LOOK_AHEAD && (endingAtTime == null || nextBeatTime < endingAtTime)) {
     scheduleBeat(totalBeats, nextBeatTime);
     nextBeatTime += 60 / bpm;
     totalBeats++;
@@ -177,14 +275,14 @@ function scheduleBeat(beat, t) {
   const barIndex = Math.floor(beat / 4) % 4;
   const chordDef = currentProgression.ch[barIndex];
 
-  if (beat % 16 === 0) schedUI(() => syncStructureAtBeat(beat), t);
+  if (beat % 16 === 0) schedUI(() => syncStructureAtBeat(beat, { announce: true }), t);
 
   playPercBeat(beatInBar, t);
   if (metronomeOn) metroClick(t, beatInBar === 0);
 
   if (beatInBar === 0) {
     const energy = currentSectionEnergy();
-    playBassBar(chordDef.r + 12, t, spb, energy);
+    playBassBar(chordDef, chordDef.r + 12, t, spb, energy);
     playChordBar(chordDef, t, spb, energy);
     schedUI(() => highlightChord(barIndex), t);
   }
@@ -193,12 +291,14 @@ function scheduleBeat(beat, t) {
 
   if (endingArmed && !endingDone && barIndex === 3 && beatInBar === 3) {
     endingArmed = false;
+    endingAtTime = t + spb;
     schedEnding(t + spb);
   }
 }
 
 function schedEnding(startT) {
   endingDone = true;
+  isPlaying = false;
   if (schedTimer) {
     clearTimeout(schedTimer);
     schedTimer = null;
@@ -210,14 +310,13 @@ function schedEnding(startT) {
   masterGain.gain.setValueAtTime(masterGain.gain.value, startT - 0.04);
   masterGain.gain.linearRampToValueAtTime(0, startT - 0.001);
   masterGain.gain.setValueAtTime(Math.min(0.8, MIX_PROFILE.master), startT);
-  playChordAt(notes, startT, spb * 0.9, currentMainSound, 1.0, true);
-  playStyledDrum('kick', startT, { gain: 1.2 });
+  playChordAt(notes, startT, spb * 0.9, currentMainSound, 1.0, false);
   schedUI(() => {
     highlightChord(0);
     highlightBeat(0);
   }, startT);
   schedUI(() => {
     stopAll();
-    setStatus('✨ fine — sipario!', '');
+    endingAtTime = null;
   }, startT + spb);
 }
